@@ -653,7 +653,7 @@ private fun resolveAttachmentMimeType(resolved: String?, fileName: String): Stri
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         "application/vnd.openxmlformats-officedocument.presentationml.presentation"
     )
-    if (resolved in allowed) return resolved!!
+    if (resolved != null && resolved in allowed) return resolved
     return when (fileName.substringAfterLast('.', "").lowercase()) {
         "jpg", "jpeg" -> "image/jpeg"
         "png" -> "image/png"
