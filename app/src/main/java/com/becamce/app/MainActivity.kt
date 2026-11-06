@@ -51,6 +51,7 @@ import com.becamce.app.core.model.ChatKind
 import com.becamce.app.core.model.UserProfile
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.retryWhen
 
 private val Night = Color(0xFF09090E)
 private val Panel = Color(0xFF171722)
@@ -144,7 +145,15 @@ private fun ChatsScreen(
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(repository) {
-        repository.observeChats().catch { error = it.message ?: "Не удалось загрузить чаты"; loading = false }.collect { chats = it; loading = false; error = null }
+        repository.observeChats()
+            .retryWhen { cause, attempt ->
+                error = cause.message ?: "Связь потеряна. Повторяем подключение…"
+                loading = false
+                kotlinx.coroutines.delay((1_000L shl attempt.coerceAtMost(5).toInt()).coerceAtMost(30_000L))
+                true
+            }
+            .catch { error = it.message ?: "Не удалось загрузить чаты"; loading = false }
+            .collect { chats = it; loading = false; error = null }
     }
     val filtered = chats.filter { (it.title ?: "Личный чат").contains(search, true) || (it.lastMessage?.body ?: "").contains(search, true) }
     Column(modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF171322), Night, Night))).padding(horizontal = 20.dp)) {
@@ -357,7 +366,17 @@ private fun ConversationScreen(modifier: Modifier, chatId: String, repository: C
         }
     }
     val listState = rememberLazyListState()
-    LaunchedEffect(chatId) { repository.markRead(chatId); repository.observeMessages(chatId).catch { error = it.message ?: "Не удалось загрузить сообщения" }.collect { messages = it } }
+    LaunchedEffect(chatId) {
+        repository.markRead(chatId)
+        repository.observeMessages(chatId)
+            .retryWhen { cause, attempt ->
+                error = cause.message ?: "Связь потеряна. Повторяем подключение…"
+                kotlinx.coroutines.delay((1_000L shl attempt.coerceAtMost(5).toInt()).coerceAtMost(30_000L))
+                true
+            }
+            .catch { error = it.message ?: "Не удалось загрузить сообщения" }
+            .collect { messages = it; error = null }
+    }
     LaunchedEffect(messages.size) { if (messages.isNotEmpty()) listState.animateScrollToItem(messages.lastIndex) }
     val editingMessage = messages.firstOrNull { it.id == editingMessageId }
     val deleteConfirmMessage = messages.firstOrNull { it.id == deleteConfirmMessageId }
