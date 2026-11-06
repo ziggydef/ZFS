@@ -96,7 +96,7 @@ class SupabaseChatRepository(context: Context) : ChatRepository {
     private suspend fun fetchChats(): List<ChatSummary> {
         val userId = requireUserId()
         val raw = request(
-            "chats?select=id,kind,title,updated_at,chat_members(user_id),messages(id,chat_id,sender_id,body,reply_to,edited_at,created_at)&chat_members.user_id=eq.$userId&messages.order=created_at.desc&messages.limit=1&order=updated_at.desc",
+            "chats?select=id,kind,title,updated_at,chat_members!inner(user_id),messages(id,chat_id,sender_id,body,reply_to,edited_at,created_at)&chat_members.user_id=eq.$userId&messages.order=created_at.desc&messages.limit=1&order=updated_at.desc",
             "GET"
         )
         val rows = JSONArray(raw)
