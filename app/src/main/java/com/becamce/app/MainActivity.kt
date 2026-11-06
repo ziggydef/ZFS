@@ -648,8 +648,9 @@ private fun ProfileScreen(modifier: Modifier, authRepository: AuthRepository, re
         Spacer(Modifier.height(10.dp))
         OutlinedTextField(
             value = username, onValueChange = { username = it.removePrefix("@").lowercase().filter { ch -> ch in 'a'..'z' || ch in '0'..'9' || ch == '_' }.take(24) },
-            label = { Text("Юзернейм") }, leadingIcon = { Text("@", color = Violet) }, singleLine = true,
-            supportingText = { Text("4–24 символа: латиница, цифры и _", color = Muted) },
+            enabled = profile?.username.isNullOrBlank(),
+            label = { Text("Ник для входа") }, leadingIcon = { Text("@", color = Violet) }, singleLine = true,
+            supportingText = { Text(if (profile?.username.isNullOrBlank()) "4–24 символа: латиница, цифры и _" else "Ник для входа нельзя изменить", color = Muted) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii), modifier = Modifier.fillMaxWidth(), colors = profileFieldColors()
         )
         Spacer(Modifier.height(4.dp))
