@@ -14,8 +14,8 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "0.1.0"
-        buildConfigField("String", "SUPABASE_URL", "\"\${System.getenv("SUPABASE_URL") ?: ""}\"")
-        buildConfigField("String", "SUPABASE_ANON_KEY", "\"\${System.getenv("SUPABASE_ANON_KEY") ?: ""}\"")
+        buildConfigField("String", "SUPABASE_URL", "\"" + (System.getenv("SUPABASE_URL") ?: "") + "\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"" + (System.getenv("SUPABASE_ANON_KEY") ?: "") + "\"")
     }
 
     buildFeatures {
