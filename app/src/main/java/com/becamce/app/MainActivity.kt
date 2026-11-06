@@ -51,6 +51,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.becamce.app.core.data.SupabaseAuthRepository
+import com.becamce.app.core.data.SupabaseCallRepository
+import com.becamce.app.core.data.CallInfo
 import com.becamce.app.core.data.SupabaseChatRepository
 import com.becamce.app.core.data.SupabaseProfileRepository
 import com.becamce.app.core.domain.AuthRepository
@@ -68,6 +70,13 @@ private val Violet = Color(0xFF9B78F5)
 private val Muted = Color(0xFF9291A4)
 private val White = Color(0xFFF4F1FC)
 
+private data class ActiveCall(
+    val title: String,
+    val chatId: String? = null,
+    val peerId: String? = null,
+    val callId: String? = null
+)
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -81,6 +90,7 @@ private fun BecamceApp() {
     val authRepository = remember { SupabaseAuthRepository(context.applicationContext) }
     val profileRepository = remember { SupabaseProfileRepository(context.applicationContext, authRepository) }
     val chatRepository = remember { SupabaseChatRepository(context.applicationContext, authRepository) }
+    val callRepository = remember { SupabaseCallRepository(context.applicationContext, authRepository) }
     LaunchedEffect(authRepository) { authRepository.refreshSessionIfNeeded() }
     val session by authRepository.session.collectAsState(initial = null)
     MaterialTheme(colorScheme = darkColorScheme(background = Night, surface = Panel, primary = Violet, onBackground = White, onSurface = White)) {
@@ -99,6 +109,7 @@ private fun MessengerShell(
     var search by remember { mutableStateOf("") }
     var openedChatId by remember { mutableStateOf<String?>(null) }
     var openedChatTitle by remember { mutableStateOf("Диалог") }
+    var activeCall by remember { mutableStateOf<ActiveCall?>(null) }
     val currentSession by authRepository.session.collectAsState(initial = null)
     MaterialTheme(colorScheme = darkColorScheme(background = Night, surface = Panel, primary = Violet, onBackground = White, onSurface = White)) {
         Scaffold(
@@ -130,7 +141,7 @@ private fun MessengerShell(
             }
         ) { padding ->
             when {
-                openedChatId != null -> ConversationScreen(Modifier.padding(padding), openedChatId!!, openedChatTitle, chatRepository, currentSession?.userId.orEmpty()) {
+                openedChatId != null -> ConversationScreen(Modifier.padding(padding), openedChatId!!, openedChatTitle, chatRepository, callRepository, currentSession?.userId.orEmpty(), onStartCall = { peerId -> activeCall = ActiveCall(openedChatTitle, openedChatId, peerId) }) {
                     openedChatId = null
                     openedChatTitle = "Диалог"
                 }
@@ -141,6 +152,7 @@ private fun MessengerShell(
                     openedChatId = chatId
                     openedChatTitle = title
                 }
+                selectedTab == "Звонки" -> CallsScreen(Modifier.padding(padding), callRepository, onAccept = { call -> activeCall = ActiveCall("Входящий звонок", callId = call.id) })
                 selectedTab == "Контакты" -> PeopleScreen(Modifier.padding(padding), profileRepository, chatRepository) { chatId, title ->
                     openedChatId = chatId
                     openedChatTitle = title
@@ -148,6 +160,57 @@ private fun MessengerShell(
                 }
                 selectedTab == "Профиль" -> ProfileScreen(Modifier.padding(padding), authRepository, profileRepository)
                 else -> PlaceholderScreen(Modifier.padding(padding), selectedTab)
+            }
+        }
+        activeCall?.let { call ->
+            VoiceCallScreen(
+                modifier = Modifier.fillMaxSize(),
+                repository = callRepository,
+                currentUserId = currentSession?.userId.orEmpty(),
+                peerTitle = call.title,
+                outgoingChatId = call.chatId,
+                outgoingPeerId = call.peerId,
+                incomingCallId = call.callId,
+                onClose = { activeCall = null }
+            )
+        }
+    }
+}
+
+@Composable
+private fun CallsScreen(
+    modifier: Modifier,
+    repository: SupabaseCallRepository,
+    onAccept: (CallInfo) -> Unit
+) {
+    var incoming by remember { mutableStateOf<List<CallInfo>>(emptyList()) }
+    var error by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(repository) {
+        repository.observeIncomingCalls().collect { incoming = it; error = null }
+    }
+    Column(modifier.fillMaxSize().background(Night).padding(20.dp)) {
+        Text("Звонки", color = White, fontSize = 27.sp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(18.dp))
+        error?.let { Text(it, color = Color(0xFFFF9BA8), fontSize = 12.sp) }
+        if (incoming.isEmpty()) {
+            Text("Нет входящих звонков", color = Muted, fontSize = 14.sp)
+        } else {
+            incoming.forEach { call ->
+                Row(
+                    Modifier.fillMaxWidth().padding(vertical = 6.dp).clip(RoundedCornerShape(18.dp))
+                        .background(Panel).padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Входящий звонок", color = White, fontWeight = FontWeight.SemiBold)
+                        Text("От пользователя ${call.callerId.take(8)}…", color = Muted, fontSize = 11.sp)
+                    }
+                    TextButton(onClick = {
+                        scope.launch { repository.setStatus(call.id, "rejected") }
+                    }) { Text("Отклонить", color = Color(0xFFFF9BA8)) }
+                    TextButton(onClick = { onAccept(call) }) { Text("Принять", color = Violet) }
+                }
             }
         }
     }
@@ -373,7 +436,16 @@ private fun PeopleScreen(
 }
 
 @Composable
-private fun ConversationScreen(modifier: Modifier, chatId: String, chatTitle: String, repository: ChatRepository, currentUserId: String, onBack: () -> Unit) {
+private fun ConversationScreen(
+    modifier: Modifier,
+    chatId: String,
+    chatTitle: String,
+    repository: ChatRepository,
+    callRepository: SupabaseCallRepository,
+    currentUserId: String,
+    onStartCall: (String) -> Unit,
+    onBack: () -> Unit
+) {
     var messages by remember { mutableStateOf<List<com.becamce.app.core.model.Message>>(emptyList()) }
     var draft by remember { mutableStateOf("") }
     var sending by remember { mutableStateOf(false) }
@@ -445,7 +517,13 @@ private fun ConversationScreen(modifier: Modifier, chatId: String, chatTitle: St
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onBack) { Text("‹ Назад", color = Violet) }
             Text(chatTitle, modifier = Modifier.weight(1f), color = White, fontSize = 21.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-            IconButton(onClick = { error = "Звонки ещё не подключены — кнопка не запускает фиктивный вызов." }) {
+            IconButton(onClick = {
+                scope.launch {
+                    callRepository.peerInChat(chatId, currentUserId)
+                        .onSuccess { onStartCall(it) }
+                        .onFailure { error = it.message ?: "Не удалось начать звонок" }
+                }
+            }) {
                 Icon(Icons.Rounded.Call, contentDescription = "Позвонить", tint = Violet)
             }
         }
