@@ -179,5 +179,5 @@ with check (author_id = auth.uid() and exists (
 create policy "Authors edit own channel posts"
 on public.channel_posts for update to authenticated using (author_id = auth.uid()) with check (author_id = auth.uid());
 
--- Profile creation is intentionally performed by the client after sign-up.
+-- Profile rows are created by the auth trigger in migration 0003.
 -- Never put a Supabase service-role key in the Android application.
