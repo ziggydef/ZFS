@@ -202,14 +202,14 @@ class SupabaseChatRepository(context: Context, private val authRepository: AuthR
     private suspend fun fetchChats(): List<ChatSummary> {
         val userId = requireUserId()
         val raw = request(
-            "chats?select=id,kind,title,updated_at,chat_members!inner(user_id),messages(id,chat_id,sender_id,body,media_path,media_mime,media_file_name,reply_to,edited_at,created_at)&chat_members.user_id=eq.$userId&messages.order=created_at.desc&messages.limit=1&order=updated_at.desc",
+            "chats?select=id,kind,title,updated_at,chat_members!inner(user_id),members:chat_members(user_id),messages(id,chat_id,sender_id,body,media_path,media_mime,media_file_name,reply_to,edited_at,created_at)&chat_members.user_id=eq.$userId&messages.order=created_at.desc&messages.limit=1&order=updated_at.desc",
             "GET"
         )
         val rows = JSONArray(raw)
         return buildList {
             for (i in 0 until rows.length()) {
                 val row = rows.getJSONObject(i)
-                val memberRows = row.optJSONArray("chat_members") ?: JSONArray()
+                val memberRows = row.optJSONArray("members") ?: JSONArray()
                 val members = buildList {
                     for (j in 0 until memberRows.length()) add(memberRows.getJSONObject(j).optString("user_id"))
                 }
