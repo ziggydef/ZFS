@@ -3,6 +3,7 @@ package com.becamce.app.core.data
 import android.content.Context
 import com.becamce.app.BuildConfig
 import com.becamce.app.core.domain.ChatRepository
+import com.becamce.app.core.domain.AuthRepository
 import com.becamce.app.core.model.ChatKind
 import com.becamce.app.core.model.ChatSummary
 import com.becamce.app.core.model.Message
@@ -27,7 +28,7 @@ import java.util.concurrent.TimeUnit
  * Polling is used as a dependable first transport; Realtime websocket delivery
  * will replace polling in a later milestone without changing the domain contract.
  */
-class SupabaseChatRepository(context: Context) : ChatRepository {
+class SupabaseChatRepository(context: Context, private val authRepository: AuthRepository) : ChatRepository {
     private val config = BackendConfig(BuildConfig.SUPABASE_URL, BuildConfig.SUPABASE_ANON_KEY)
     private val sessions = SecureSessionStore(context.applicationContext)
     private val client = OkHttpClient.Builder()
@@ -96,7 +97,7 @@ class SupabaseChatRepository(context: Context) : ChatRepository {
             java.net.URLEncoder.encode(it, "UTF-8").replace("+", "%20")
         }
         withContext(kotlinx.coroutines.Dispatchers.IO) {
-            val session = sessions.read() ?: throw IOException("Войдите в аккаунт, чтобы продолжить.")
+            val session = requireFreshSession()
             val url = config.projectUrl.trimEnd('/') + "/storage/v1/object/chat-attachments/" + encodedPath
             val body = bytes.toRequestBody(mimeType.toMediaType())
             val request = Request.Builder().url(url)
@@ -134,7 +135,7 @@ class SupabaseChatRepository(context: Context) : ChatRepository {
         }
         withContext(kotlinx.coroutines.Dispatchers.IO) {
             check(config.isConfigured) { "Supabase пока не подключён." }
-            val session = sessions.read() ?: throw IOException("Войдите в аккаунт, чтобы продолжить.")
+            val session = requireFreshSession()
             val url = config.projectUrl.trimEnd('/') + "/storage/v1/object/sign/chat-attachments/" +
                 encodedPath
             val payload = JSONObject().put("expiresIn", 300)
@@ -254,6 +255,11 @@ class SupabaseChatRepository(context: Context) : ChatRepository {
 
     private fun instant(value: String): Instant = runCatching { Instant.parse(value) }.getOrElse { Instant.EPOCH }
 
+    private suspend fun requireFreshSession(): StoredSession {
+        authRepository.refreshSessionIfNeeded().getOrElse { throw it }
+        return sessions.read() ?: throw IOException("Сессия завершена. Войдите снова.")
+    }
+
     private fun requireUserId(): String = sessions.read()?.userId
         ?: throw IOException("Сессия завершена. Войдите снова.")
 
@@ -264,7 +270,7 @@ class SupabaseChatRepository(context: Context) : ChatRepository {
         prefer: String? = null
     ): String = withContext(kotlinx.coroutines.Dispatchers.IO) {
         check(config.isConfigured) { "Supabase пока не подключён. Нужны URL и публичный ключ проекта." }
-        val session = sessions.read() ?: throw IOException("Войдите в аккаунт, чтобы продолжить.")
+        val session = requireFreshSession()
         val url = config.projectUrl.trimEnd('/') + "/rest/v1/" + path
         val builder = Request.Builder().url(url)
             .header("apikey", config.publishableKey)
