@@ -308,10 +308,14 @@ private fun ConversationScreen(modifier: Modifier, chatId: String, repository: C
     var draft by remember { mutableStateOf("") }
     var sending by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    var editingMessageId by remember { mutableStateOf<String?>(null) }
+    var editingDraft by remember { mutableStateOf("") }
+    var actionBusy by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
     LaunchedEffect(chatId) { repository.markRead(chatId); repository.observeMessages(chatId).catch { error = it.message ?: "Не удалось загрузить сообщения" }.collect { messages = it } }
     LaunchedEffect(messages.size) { if (messages.isNotEmpty()) listState.animateScrollToItem(messages.lastIndex) }
+    val editingMessage = messages.firstOrNull { it.id == editingMessageId }
     Column(modifier.fillMaxSize().background(Night).padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onBack) { Text("‹ Назад", color = Violet) }
@@ -335,6 +339,26 @@ private fun ConversationScreen(modifier: Modifier, chatId: String, repository: C
                     ) {
                         Text(msg.body.orEmpty(), color = White, fontSize = 14.sp)
                         if (msg.editedAt != null) Text("изменено", color = White.copy(alpha = .58f), fontSize = 9.sp)
+                        if (ownMessage) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                TextButton(
+                                    enabled = !actionBusy,
+                                    contentPadding = PaddingValues(0.dp),
+                                    onClick = { editingMessageId = msg.id; editingDraft = msg.body.orEmpty() }
+                                ) { Text("Изменить", color = Color.White.copy(alpha = .72f), fontSize = 10.sp) }
+                                TextButton(
+                                    enabled = !actionBusy,
+                                    contentPadding = PaddingValues(0.dp),
+                                    onClick = {
+                                        scope.launch {
+                                            actionBusy = true
+                                            repository.deleteMessage(msg.id).onFailure { error = it.message ?: "Не удалось удалить сообщение" }
+                                            actionBusy = false
+                                        }
+                                    }
+                                ) { Text("Удалить", color = Color(0xFFFFA0AD), fontSize = 10.sp) }
+                            }
+                        }
                     }
                 }
             }
@@ -356,6 +380,43 @@ private fun ConversationScreen(modifier: Modifier, chatId: String, repository: C
                 }
             }) { Icon(Icons.Rounded.Send, contentDescription = "Отправить", tint = Violet) }
         }
+    }
+    if (editingMessage != null) {
+        AlertDialog(
+            onDismissRequest = { if (!actionBusy) editingMessageId = null },
+            title = { Text("Изменить сообщение") },
+            text = {
+                OutlinedTextField(
+                    value = editingDraft,
+                    onValueChange = { editingDraft = it.take(8000) },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2,
+                    colors = profileFieldColors()
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = editingDraft.isNotBlank() && !actionBusy,
+                    onClick = {
+                        scope.launch {
+                            actionBusy = true
+                            repository.editMessage(editingMessage.id, editingDraft)
+                                .onSuccess { editingMessageId = null }
+                                .onFailure { error = it.message ?: "Не удалось изменить сообщение" }
+                            actionBusy = false
+                        }
+                    }
+                ) { Text(if (actionBusy) "Сохраняем…" else "Сохранить", color = Violet) }
+            },
+            dismissButton = {
+                TextButton(enabled = !actionBusy, onClick = { editingMessageId = null }) {
+                    Text("Отмена", color = Muted)
+                }
+            },
+            containerColor = Panel,
+            titleContentColor = White,
+            textContentColor = White
+        )
     }
 }
 
