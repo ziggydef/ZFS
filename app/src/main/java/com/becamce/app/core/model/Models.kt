@@ -31,6 +31,8 @@ data class Message(
     val senderId: String,
     val body: String?,
     val mediaPath: String? = null,
+    val mediaMime: String? = null,
+    val mediaFileName: String? = null,
     val replyTo: String? = null,
     val editedAt: Instant? = null,
     val expiresAt: Instant? = null,
