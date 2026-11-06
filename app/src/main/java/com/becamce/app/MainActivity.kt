@@ -79,9 +79,6 @@ private fun MessengerShell(
     var selectedTab by remember { mutableStateOf("Чаты") }
     var search by remember { mutableStateOf("") }
     var openedChatId by remember { mutableStateOf<String?>(null) }
-    var globalNotice by remember { mutableStateOf<String?>(null) }
-    val scope = rememberCoroutineScope()
-
     MaterialTheme(colorScheme = darkColorScheme(background = Night, surface = Panel, primary = Violet, onBackground = White, onSurface = White)) {
         Scaffold(
             containerColor = Night,
@@ -274,7 +271,7 @@ private fun ConversationScreen(modifier: Modifier, chatId: String, repository: C
     var sending by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
-    LaunchedEffect(chatId) { repository.observeMessages(chatId).catch { error = it.message ?: "Не удалось загрузить сообщения" }.collect { messages = it } }
+    LaunchedEffect(chatId) { repository.markRead(chatId); repository.observeMessages(chatId).catch { error = it.message ?: "Не удалось загрузить сообщения" }.collect { messages = it } }
     Column(modifier.fillMaxSize().background(Night).padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onBack) { Text("‹ Назад", color = Violet) }
