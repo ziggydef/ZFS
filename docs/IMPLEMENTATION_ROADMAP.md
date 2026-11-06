@@ -15,10 +15,14 @@ This is the delivery checklist for becamce. Items are not considered complete un
 
 ## Identity and sessions
 - [x] SQL auth profile trigger and ordered backend migrations
-- [ ] Supabase project and Auth configuration
-- [ ] Sign-up, sign-in, sign-out, password recovery
+- [ ] Supabase project and Auth configuration + GitHub Actions secrets
+- [x] Email sign-up, sign-in and password-reset UI
+- [x] Supabase Auth REST integration
+- [x] Android Keystore encrypted session persistence and refresh
+- [ ] Sign-out UI and end-to-end account flow verification
 - [ ] Profile creation and username availability
-- [ ] Secure session persistence and logout-all-devices
+- [x] Secure encrypted session persistence
+- [ ] Logout-all-devices and full account lifecycle
 
 ## Messaging
 - [x] Atomic direct/group chat creation RPC with initial membership
