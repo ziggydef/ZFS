@@ -58,7 +58,7 @@ class SupabaseProfileRepository(context: Context, private val authRepository: Au
     override suspend fun searchUsers(query: String): Result<List<UserProfile>> = result {
         val term = query.trim().removePrefix("@")
         require(term.length in 2..32) { "Введите минимум 2 символа для поиска" }
-        require(term.matches(Regex("^[a-zA-Z0-9_ .-]{2,32}$"))) { "Используйте буквы, цифры, пробел, точку или _" }
+        require(term.matches(Regex("^[\\p{L}\\p{N}_ .-]{2,32}$"))) { "Используйте буквы, цифры, пробел, точку или _" }
         val encoded = URLEncoder.encode("*$term*", Charsets.UTF_8.name())
         val rows = JSONArray(request(
             "profiles?select=id,username,display_name,avatar_path,bio&or=(username.ilike.$encoded,display_name.ilike.$encoded)&limit=30",
