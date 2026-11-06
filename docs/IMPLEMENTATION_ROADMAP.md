@@ -38,7 +38,8 @@ Items are marked complete when implemented in source; live-backend verification 
 - [x] Confirmation before deleting a message
 - [x] Restrict execution of SECURITY DEFINER membership/trigger helpers
 - [ ] Delivery/read state in UI
-- [ ] Group membership management, roles and invites
+- [x] Server-side add/remove group-member RPC with owner/admin checks
+- [ ] Group membership management UI, role editing and invites
 - [ ] Image/video/document uploads and private storage
 - [ ] Voice recording and playback
 
