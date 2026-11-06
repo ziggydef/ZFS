@@ -4,7 +4,7 @@ The backend is planned on Supabase. A project must be created by the project own
 
 1. Create a Supabase project.
 2. Apply migrations in order in the SQL Editor: `0001_initial_schema.sql`, then `0002_chat_creation_rpc.sql`, then `0003_auth_profile_trigger.sql`, then `0004_channel_rls_hardening.sql`, then `0005_message_mutation_rpcs.sql`, then `0006_mark_chat_read_rpc.sql`.
-3. Enable Email and Phone Auth providers in Authentication → Sign In / Providers. For free development, open the Phone provider settings and add a test phone number with a fixed OTP under “Test phone numbers”. Use that exact number and code in the app; Supabase verifies it without sending an SMS, so no Twilio account or SMS credits are needed. Keep test numbers private and use only numbers you control. For real users later, configure a supported SMS provider (such as Twilio) in the same Phone provider settings, then review OTP expiry, rate limits and CAPTCHA to control abuse and cost.
+3. Enable Email Auth in Authentication → Sign In / Providers. Phone sign-in is intentionally hidden in the current app version; the backend OTP methods are retained for a later release. No SMS provider is required for the current email-only milestone.
 4. Create private Storage buckets for profile media and chat attachments.
 5. Add Storage policies based on chat membership and channel subscription.
 6. Configure the Android app with the project URL and publishable/anon key using build-time configuration.
@@ -12,7 +12,7 @@ The backend is planned on Supabase. A project must be created by the project own
 8. Configure a server-side scheduled worker for message expiry. A client-side timer is not sufficient.
 9. Test every RLS policy with at least two separate test accounts before real user data is used.
 
-The Android client currently uses Supabase Auth for email and phone authentication; messaging, storage, and the other backend features are still under implementation. Do not paste service-role keys into source code, GitHub commits, screenshots, or chat.
+The Android client currently uses Supabase Auth for email authentication. Chat and profile repository implementations are being integrated; live project verification is still pending. Realtime websocket delivery is not yet implemented (the first message repository uses periodic refresh). messaging, storage, and the other backend features are still under implementation. Do not paste service-role keys into source code, GitHub commits, screenshots, or chat.
 
 
 ## Android app configuration
