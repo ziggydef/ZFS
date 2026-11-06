@@ -22,7 +22,7 @@ This is the delivery checklist for becamce. Items are not considered complete un
 - [x] Android Keystore encrypted session persistence and refresh
 - [x] Sign-out UI
 - [ ] End-to-end account flow verification against a configured Supabase project
-- [ ] Profile creation and username availability
+- [x] Profile fetch/update and username availability repository
 - [x] Secure encrypted session persistence
 - [ ] Logout-all-devices and full account lifecycle
 
