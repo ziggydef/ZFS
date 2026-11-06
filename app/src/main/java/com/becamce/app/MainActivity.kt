@@ -1,7 +1,12 @@
 package com.becamce.app
 
 import android.os.Bundle
+import android.content.Intent
+import android.net.Uri
+import android.provider.OpenableColumns
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -15,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.AttachFile
 import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.ChatBubbleOutline
 import androidx.compose.material.icons.rounded.Groups
@@ -314,6 +320,28 @@ private fun ConversationScreen(modifier: Modifier, chatId: String, repository: C
     var replyingTo by remember { mutableStateOf<com.becamce.app.core.model.Message?>(null) }
     var actionBusy by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val attachmentPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            scope.launch {
+                sending = true
+                error = null
+                runCatching {
+                    val mime = context.contentResolver.getType(uri) ?: "application/octet-stream"
+                    val name = context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+                        ?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
+                        ?: "attachment"
+                    val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                        ?: throw IllegalStateException("Не удалось прочитать файл")
+                    require(bytes.isNotEmpty() && bytes.size <= 20 * 1024 * 1024) { "Максимальный размер файла — 20 МБ" }
+                    repository.uploadAttachment(chatId, name, mime, bytes).onFailure { throw it }
+                }.onFailure { error = it.message ?: "Не удалось отправить файл" }
+                sending = false
+            }
+        }
+    }
     val listState = rememberLazyListState()
     LaunchedEffect(chatId) { repository.markRead(chatId); repository.observeMessages(chatId).catch { error = it.message ?: "Не удалось загрузить сообщения" }.collect { messages = it } }
     LaunchedEffect(messages.size) { if (messages.isNotEmpty()) listState.animateScrollToItem(messages.lastIndex) }
@@ -345,7 +373,24 @@ private fun ConversationScreen(modifier: Modifier, chatId: String, repository: C
                                 Text("↳ ${replied.body.orEmpty().take(100)}", color = White.copy(alpha = .62f), fontSize = 10.sp)
                             }
                         }
-                        Text(msg.body.orEmpty(), color = White, fontSize = 14.sp)
+                        msg.mediaPath?.let { path ->
+                            Text(
+                                "📎 ${msg.mediaFileName ?: "Вложение"}",
+                                color = Color(0xFFD8C9FF),
+                                fontSize = 13.sp,
+                                modifier = Modifier.clickable(enabled = !sending) {
+                                    scope.launch {
+                                        sending = true
+                                        repository.getAttachmentUrl(path).onSuccess { url ->
+                                            runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+                                                .onFailure { error = "Не удалось открыть файл" }
+                                        }.onFailure { error = it.message ?: "Не удалось получить файл" }
+                                        sending = false
+                                    }
+                                }.padding(vertical = 4.dp)
+                            )
+                        }
+                        msg.body?.let { Text(it, color = White, fontSize = 14.sp) }
                         if (msg.editedAt != null) Text("изменено", color = White.copy(alpha = .58f), fontSize = 9.sp)
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             TextButton(
@@ -387,6 +432,18 @@ private fun ConversationScreen(modifier: Modifier, chatId: String, repository: C
             Spacer(Modifier.height(6.dp))
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(
+                enabled = !sending,
+                onClick = {
+                    attachmentPicker.launch(arrayOf(
+                        "image/jpeg", "image/png", "image/webp", "image/gif",
+                        "application/pdf", "text/plain", "application/zip",
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                    ))
+                }
+            ) { Icon(Icons.Rounded.AttachFile, contentDescription = "Прикрепить файл", tint = Violet) }
             TextField(
                 value = draft, onValueChange = { draft = it; error = null }, modifier = Modifier.weight(1f),
                 placeholder = { Text("Сообщение…", color = Muted) }, colors = TextFieldDefaults.colors(
