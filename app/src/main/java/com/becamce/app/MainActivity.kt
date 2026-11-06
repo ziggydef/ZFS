@@ -204,7 +204,7 @@ private fun ChatsScreen(
         if (!chat.title.isNullOrBlank()) return chat.title
         if (chat.kind == ChatKind.GROUP) return "Групповой чат"
         val peer = chat.members.firstOrNull { it != currentUserId }?.let { profilesById[it] }
-        return peer?.displayName?.ifBlank { "Личный чат" } ?: "Личный чат"
+        return peer?.displayName?.ifBlank { peer.username?.let { "@$it" } ?: "Личный чат" } ?: "Личный чат"
     }
     val filtered = chats.filter {
         displayTitle(it).contains(search, true) || (it.lastMessage?.body ?: "").contains(search, true)
