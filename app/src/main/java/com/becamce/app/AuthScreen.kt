@@ -77,6 +77,10 @@ fun AuthScreen(repository: AuthRepository) {
             )
 
             if (phoneMode) {
+                Text(
+                    "Бесплатный тест: добавь номер и фиксированный код в Supabase → Authentication → Providers → Phone → Test phone numbers. SMS отправляться не будет.",
+                    color = AuthMuted, fontSize = 12.sp
+                )
                 if (!phoneCodeSent) {
                     OutlinedTextField(
                         value = displayName, onValueChange = { displayName = it; error = null },
