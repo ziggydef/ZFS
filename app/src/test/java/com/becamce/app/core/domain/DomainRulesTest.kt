@@ -30,6 +30,10 @@ class InputValidationTest {
         assertNull(InputValidation.password("becamceSecure2026"))
     }
 
+    @Test fun normalizesUsernameForLookup() {
+        assertEquals("ziggy_2026", MessageRules.normalizeUsername(" @Ziggy_2026 "))
+    }
+
     @Test fun validatesUsernameBoundsAndCharacters() {
         assertNull(InputValidation.username("ziggy_2026"))
         assertEquals("Ник: 4–24 символа, латиница, цифры и _", InputValidation.username("ab"))
