@@ -61,34 +61,14 @@ private val Muted = Color(0xFF9291A4)
 private val White = Color(0xFFF4F1FC)
 
 class MainActivity : ComponentActivity() {
-    private var recoveryToken by mutableStateOf<String?>(null)
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        recoveryToken = extractRecoveryToken(intent)
-        setContent { BecamceApp(recoveryToken) { recoveryToken = null } }
-    }
-
-    override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent)
-        setIntent(intent)
-        recoveryToken = extractRecoveryToken(intent)
-    }
-
-    private fun extractRecoveryToken(intent: Intent?): String? {
-        val data = intent?.data ?: return null
-        val fragmentParams = data.fragment?.let { Uri.parse("https://becamce.invalid/?$it") }
-        val recoveryType = data.getQueryParameter("type")
-            ?: fragmentParams?.getQueryParameter("type")
-        if (recoveryType != "recovery") return null
-        return data.getQueryParameter("access_token")
-            ?.takeIf { it.isNotBlank() }
-            ?: fragmentParams?.getQueryParameter("access_token")?.takeIf { it.isNotBlank() }
+        setContent { BecamceApp() }
     }
 }
 
 @Composable
-private fun BecamceApp(recoveryToken: String?, onRecoveryComplete: () -> Unit) {
+private fun BecamceApp() {
     val context = LocalContext.current
     val authRepository = remember { SupabaseAuthRepository(context.applicationContext) }
     val profileRepository = remember { SupabaseProfileRepository(context.applicationContext, authRepository) }
@@ -96,7 +76,7 @@ private fun BecamceApp(recoveryToken: String?, onRecoveryComplete: () -> Unit) {
     LaunchedEffect(authRepository) { authRepository.refreshSessionIfNeeded() }
     val session by authRepository.session.collectAsState(initial = null)
     MaterialTheme(colorScheme = darkColorScheme(background = Night, surface = Panel, primary = Violet, onBackground = White, onSurface = White)) {
-        if (recoveryToken != null || session == null) AuthScreen(authRepository, recoveryToken, onRecoveryComplete)
+        if (session == null) AuthScreen(authRepository)
         else MessengerShell(authRepository, profileRepository, chatRepository)
     }
 }
