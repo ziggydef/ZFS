@@ -23,6 +23,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 import com.becamce.app.core.data.SupabaseAuthRepository
+import com.becamce.app.core.domain.AuthRepository
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -61,12 +63,12 @@ private fun BecamceApp() {
     LaunchedEffect(authRepository) { authRepository.refreshSessionIfNeeded() }
     val session by authRepository.session.collectAsState()
     MaterialTheme(colorScheme = darkColorScheme(background = Night, surface = Panel, primary = Violet, onBackground = White, onSurface = White)) {
-        if (session == null) AuthScreen(authRepository) else MessengerShell()
+        if (session == null) AuthScreen(authRepository) else MessengerShell(authRepository)
     }
 }
 
 @Composable
-private fun MessengerShell() {
+private fun MessengerShell(authRepository: AuthRepository) {
     var selectedTab by remember { mutableStateOf("Чаты") }
     var search by remember { mutableStateOf("") }
     MaterialTheme(colorScheme = darkColorScheme(background = Night, surface = Panel, primary = Violet, onBackground = White, onSurface = White)) {
@@ -96,8 +98,11 @@ private fun MessengerShell() {
                 }
             }
         ) { padding ->
-            if (selectedTab == "Чаты") ChatsScreen(Modifier.padding(padding), search) { search = it }
-            else PlaceholderScreen(Modifier.padding(padding), selectedTab)
+            when (selectedTab) {
+                "Чаты" -> ChatsScreen(Modifier.padding(padding), search) { search = it }
+                "Профиль" -> ProfileScreen(Modifier.padding(padding), authRepository)
+                else -> PlaceholderScreen(Modifier.padding(padding), selectedTab)
+            }
         }
     }
 }
@@ -173,5 +178,53 @@ private fun PlaceholderScreen(modifier: Modifier = Modifier, title: String) {
         Text(title, color = White, fontSize = 26.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
         Text("Раздел будет реализован на следующем этапе", color = Muted)
+    }
+}
+
+
+@Composable
+private fun ProfileScreen(modifier: Modifier = Modifier, authRepository: AuthRepository) {
+    var busy by remember { mutableStateOf(false) }
+    var message by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+    Column(
+        modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF171322), Night, Night))).padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            Modifier.size(88.dp).clip(CircleShape).background(Brush.linearGradient(listOf(Violet, Color(0xFF44336E)))),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(Icons.Rounded.Person, contentDescription = null, tint = Color.White, modifier = Modifier.size(42.dp))
+        }
+        Spacer(Modifier.height(18.dp))
+        Text("Твой профиль", color = White, fontSize = 25.sp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(6.dp))
+        Text("Аккаунт becamce подключён", color = Muted, fontSize = 13.sp)
+        message?.let {
+            Spacer(Modifier.height(12.dp))
+            Text(it, color = Color(0xFFFF8B9A), fontSize = 12.sp)
+        }
+        Spacer(Modifier.height(24.dp))
+        Button(
+            enabled = !busy,
+            onClick = {
+                scope.launch {
+                    busy = true
+                    message = null
+                    authRepository.signOut().onFailure {
+                        message = it.message ?: "Не удалось завершить сеанс"
+                    }
+                    busy = false
+                }
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF35243E)),
+            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth().height(52.dp)
+        ) {
+            if (busy) CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp)
+            else Text("Выйти из аккаунта", color = Color.White)
+        }
     }
 }
