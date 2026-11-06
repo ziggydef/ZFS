@@ -43,6 +43,8 @@ class SupabaseAuthRepository(context: Context) : AuthRepository {
             val response = execute("/auth/v1/signup", body, bearer = null)
             if (response.has("access_token") && response.has("refresh_token")) {
                 saveSessionFromAuthResponse(response)
+            } else {
+                error("В Supabase включено подтверждение почты. Отключи Confirm email перед регистрацией.")
             }
             Unit
         }
