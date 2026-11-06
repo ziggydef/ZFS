@@ -632,6 +632,7 @@ private fun ConversationScreen(modifier: Modifier, chatId: String, chatTitle: St
 
 @Composable
 private fun ProfileScreen(modifier: Modifier, authRepository: AuthRepository, repository: ProfileRepository) {
+    val context = LocalContext.current
     var profile by remember { mutableStateOf<UserProfile?>(null) }
     var displayName by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
@@ -703,6 +704,30 @@ private fun ProfileScreen(modifier: Modifier, authRepository: AuthRepository, re
             colors = ButtonDefaults.buttonColors(containerColor = Violet),
             shape = RoundedCornerShape(15.dp), modifier = Modifier.fillMaxWidth().height(50.dp)
         ) { if (busy) CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp) else Text("Сохранить профиль", color = Color.White) }
+        Spacer(Modifier.height(8.dp))
+        OutlinedButton(
+            onClick = {
+                runCatching {
+                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/l_am_ziggy")))
+                }.onFailure {
+                    message = "Не удалось открыть Telegram"
+                    isError = true
+                }
+            },
+            modifier = Modifier.fillMaxWidth().height(48.dp),
+            shape = RoundedCornerShape(15.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Violet.copy(alpha = .65f)),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = Violet)
+        ) {
+            Text("Связаться с разработчиком")
+        }
+        Spacer(Modifier.height(10.dp))
+        Text(
+            "Разработано ziGGy",
+            color = Muted.copy(alpha = .72f),
+            fontSize = 11.sp,
+            letterSpacing = .35.sp
+        )
         Spacer(Modifier.height(8.dp))
         TextButton(enabled = !busy, onClick = {
             scope.launch {
