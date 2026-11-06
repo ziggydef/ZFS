@@ -178,11 +178,12 @@ private fun ChatsScreen(
             .collect { updatedChats ->
                 chats = updatedChats
                 if (currentUserId.isNotBlank()) {
-                    val missingIds = updatedChats.flatMap { it.members }
+                    val missingIds = updatedChats.filter { it.kind == ChatKind.DIRECT }
+                        .flatMap { it.members }
                         .filter { it != currentUserId && it !in profilesById }
                         .distinct()
-                    if (missingIds.isNotEmpty()) {
-                        profiles.getProfilesByIds(missingIds).onSuccess { found ->
+                    missingIds.chunked(100).forEach { batch ->
+                        profiles.getProfilesByIds(batch).onSuccess { found ->
                             profilesById = profilesById + found.associateBy { it.id }
                         }
                     }
