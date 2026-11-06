@@ -39,12 +39,11 @@ private val AuthMuted = Color(0xFF9291A4)
 private val AuthWhite = Color(0xFFF4F1FC)
 
 @Composable
-fun AuthScreen(repository: AuthRepository, recoveryToken: String? = null, onRecoveryComplete: () -> Unit = {}) {
-    var isSignUp by remember(recoveryToken) { mutableStateOf(false) }
-    var email by remember { mutableStateOf("") }
-    var password by remember(recoveryToken) { mutableStateOf("") }
+fun AuthScreen(repository: AuthRepository) {
+    var isSignUp by remember { mutableStateOf(false) }
+    var username by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
     var displayName by remember { mutableStateOf("") }
-    var confirmPassword by remember(recoveryToken) { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var notice by remember { mutableStateOf<String?>(null) }
@@ -63,85 +62,53 @@ fun AuthScreen(repository: AuthRepository, recoveryToken: String? = null, onReco
             verticalArrangement = Arrangement.spacedBy(13.dp)
         ) {
             Text("becamce", color = AuthWhite, fontSize = 34.sp, fontWeight = FontWeight.Bold)
-            Text(
-                when { recoveryToken != null -> "ВОССТАНОВЛЕНИЕ ПАРОЛЯ"; isSignUp -> "СОЗДАЙ СВОЙ АККАУНТ"; else -> "РАДЫ ТЕБЯ ВИДЕТЬ" },
-                color = AuthMuted, fontSize = 10.sp, letterSpacing = 1.7.sp
-            )
+            Text(if (isSignUp) "СОЗДАЙ СВОЙ АККАУНТ" else "РАДЫ ТЕБЯ ВИДЕТЬ",
+                color = AuthMuted, fontSize = 10.sp, letterSpacing = 1.7.sp)
 
-            if (recoveryToken != null) {
+            if (isSignUp) {
                 OutlinedTextField(
-                    value = password, onValueChange = { password = it; error = null },
-                    label = { Text("Новый пароль") }, singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    modifier = Modifier.fillMaxWidth(), colors = fieldColors()
-                )
-                OutlinedTextField(
-                    value = confirmPassword, onValueChange = { confirmPassword = it; error = null },
-                    label = { Text("Повтори новый пароль") }, singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    modifier = Modifier.fillMaxWidth(), colors = fieldColors()
-                )
-            } else {
-                if (isSignUp) {
-                    OutlinedTextField(
-                        value = displayName, onValueChange = { displayName = it; error = null },
-                        label = { Text("Как тебя зовут") }, singleLine = true,
-                        modifier = Modifier.fillMaxWidth(), colors = fieldColors()
-                    )
-                }
-                OutlinedTextField(
-                    value = email, onValueChange = { email = it; error = null },
-                    label = { Text("Электронная почта") }, singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                    modifier = Modifier.fillMaxWidth(), colors = fieldColors()
-                )
-                OutlinedTextField(
-                    value = password, onValueChange = { password = it; error = null },
-                    label = { Text("Пароль") }, singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    value = displayName, onValueChange = { displayName = it; error = null },
+                    label = { Text("Как тебя зовут") }, singleLine = true,
                     modifier = Modifier.fillMaxWidth(), colors = fieldColors()
                 )
             }
+            OutlinedTextField(
+                value = username,
+                onValueChange = { value -> username = value.removePrefix("@").lowercase()
+                    .filter { it in 'a'..'z' || it in '0'..'9' || it == '_' }.take(24); error = null },
+                label = { Text("Ник") }, singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii),
+                modifier = Modifier.fillMaxWidth(), colors = fieldColors()
+            )
+            OutlinedTextField(
+                value = password, onValueChange = { password = it; error = null },
+                label = { Text("Пароль") }, singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                modifier = Modifier.fillMaxWidth(), colors = fieldColors()
+            )
 
             error?.let { Text(it, color = Color(0xFFFF8B9A), fontSize = 12.sp) }
             notice?.let { Text(it, color = Color(0xFF9ADDBA), fontSize = 12.sp) }
 
             Button(
                 onClick = {
-                    error = if (recoveryToken != null) {
-                        InputValidation.password(password)
-                            ?: if (password != confirmPassword) "Пароли не совпадают" else null
-                    } else {
-                        InputValidation.email(email)
-                            ?: if (isSignUp) InputValidation.password(password)
-                                ?: InputValidation.displayName(displayName)
-                            else if (password.isBlank()) "Введите пароль" else null
-                    }
+                    error = InputValidation.username(username)
+                        ?: if (password.isBlank()) "Введите пароль"
+                        else if (isSignUp) InputValidation.password(password)
+                            ?: InputValidation.displayName(displayName)
+                        else null
                     notice = null
                     if (error == null) scope.launch {
                         busy = true
-                        val result = when {
-                            recoveryToken != null -> repository.completePasswordRecovery(recoveryToken, password)
-                            isSignUp -> repository.signUp(email, password, displayName)
-                            else -> repository.signIn(email, password).map { Unit }
-                        }
+                        val result = if (isSignUp) repository.signUp(username, password, displayName)
+                            else repository.signIn(username, password).map { Unit }
                         busy = false
                         result.onSuccess {
-                            when {
-                                recoveryToken != null -> {
-                                    password = ""
-                                    confirmPassword = ""
-                                    onRecoveryComplete()
-                                    notice = "Пароль изменён. Теперь войди с новым паролем."
-                                }
-                                isSignUp -> {
-                                    isSignUp = false
-                                    notice = "Аккаунт создан. Если включено подтверждение почты, проверь входящие письма."
-                                    password = ""
-                                }
+                            if (isSignUp) {
+                                isSignUp = false
+                                password = ""
+                                notice = "Аккаунт создан. Теперь войди по нику и паролю."
                             }
                         }.onFailure { error = it.message ?: "Не удалось выполнить запрос" }
                     }
@@ -152,43 +119,16 @@ fun AuthScreen(repository: AuthRepository, recoveryToken: String? = null, onReco
                 shape = RoundedCornerShape(16.dp)
             ) {
                 if (busy) CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp)
-                else Text(when { recoveryToken != null -> "Изменить пароль"; isSignUp -> "Создать аккаунт"; else -> "Войти" }, color = Color.White)
+                else Text(if (isSignUp) "Создать аккаунт" else "Войти", color = Color.White)
             }
 
-            if (!isSignUp && recoveryToken == null) {
-                TextButton(
-                    enabled = !busy,
-                    onClick = {
-                        error = InputValidation.email(email)
-                        notice = null
-                        if (error == null) scope.launch {
-                            busy = true
-                            repository.requestPasswordReset(email)
-                                .onSuccess { notice = "Если адрес зарегистрирован, письмо для сброса отправлено." }
-                                .onFailure { error = it.message ?: "Не удалось отправить письмо" }
-                            busy = false
-                        }
-                    },
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                ) { Text("Забыли пароль?", color = AuthMuted) }
-            }
-
-            if (recoveryToken != null) {
-                TextButton(
-                    enabled = !busy,
-                    onClick = { error = null; onRecoveryComplete() },
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                ) {
-                    Text("Вернуться ко входу", color = AuthViolet)
-                }
-            } else {
-                TextButton(
-                    enabled = !busy,
-                    onClick = { isSignUp = !isSignUp; error = null; notice = null },
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                ) {
-                    Text(if (isSignUp) "Уже есть аккаунт? Войти" else "Нет аккаунта? Зарегистрироваться", color = AuthViolet)
-                }
+            TextButton(
+                enabled = !busy,
+                onClick = { isSignUp = !isSignUp; error = null; notice = null; password = "" },
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            ) {
+                Text(if (isSignUp) "Уже есть аккаунт? Войти" else "Нет аккаунта? Зарегистрироваться",
+                    color = AuthViolet)
             }
         }
     }
