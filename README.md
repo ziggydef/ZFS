@@ -24,7 +24,7 @@ Native Android messenger built with Kotlin and Jetpack Compose.
 ## Not yet release-complete
 Chat/message refresh currently uses polling rather than Realtime WebSockets. Group member add/remove RPCs are present, but the group-management UI is not yet implemented. Voice messages, calls, channels, bot API, push notifications, offline queue, and audited end-to-end encryption are not implemented. Supabase integration has not been tested against a live project. A real backend URL and publishable key are required for account and cloud features.
 
-See [backend setup](docs/BACKEND_SETUP.md) and [implementation roadmap](docs/IMPLEMENTATION_ROADMAP.md). Apply migrations `0001` through `0012` in order.
+See [backend setup](docs/BACKEND_SETUP.md) and [implementation roadmap](docs/IMPLEMENTATION_ROADMAP.md). Apply migrations `0001` through `0013` in order. Migration `0013` blocks secret-chat records until audited end-to-end encryption exists.
 
 ## Build policy
 The GitHub Actions workflow is manual-only and requires explicit final-build confirmation. Do not start intermediate builds; the release APK build is reserved for the final review.
