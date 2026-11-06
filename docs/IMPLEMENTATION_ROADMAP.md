@@ -11,7 +11,7 @@ Items are marked complete when implemented in source; live-backend verification 
 - [ ] Full unit/UI test coverage and dependency/build verification
 
 ## Identity and usernames
-- [x] Email sign-up, sign-in and password-reset UI
+- [x] Email sign-up/sign-in and complete password reset via recovery email deep link
 - [x] Supabase Auth REST integration
 - [x] Android Keystore encrypted session storage and refresh
 - [x] Sign-out
