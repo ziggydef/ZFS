@@ -41,16 +41,26 @@ class SupabaseAuthRepository(context: Context) : AuthRepository {
         requestResult {
             val body = JSONObject().put("email", email.trim()).put("password", password)
             val response = execute("/auth/v1/token?grant_type=password", body, bearer = null)
-            val user = response.optJSONObject("user") ?: error("Сервер не вернул профиль пользователя")
-            val accessToken = response.optString("access_token")
-            val refreshToken = response.optString("refresh_token")
-            if (accessToken.isBlank() || refreshToken.isBlank()) error("Сервер не вернул токены сессии")
-            val expiresAt = response.optLong("expires_at").takeIf { it > 0 }
-                ?: (System.currentTimeMillis() / 1000L + response.optLong("expires_in", 3600L))
-            val saved = StoredSession(user.getString("id"), accessToken, refreshToken, expiresAt)
-            sessionStore.write(saved)
-            saved.toAuthSession().also { mutableSession.value = it }
+            saveSessionFromAuthResponse(response)
         }
+
+    override suspend fun requestPhoneCode(phone: String, displayName: String): Result<Unit> = requestResult {
+        val body = JSONObject()
+            .put("phone", phone.trim())
+            .put("create_user", true)
+            .put("data", JSONObject().put("display_name", displayName.trim()))
+        execute("/auth/v1/otp", body, bearer = null)
+        Unit
+    }
+
+    override suspend fun verifyPhoneCode(phone: String, code: String): Result<AuthSession> = requestResult {
+        val response = execute(
+            "/auth/v1/verify",
+            JSONObject().put("phone", phone.trim()).put("token", code.trim()).put("type", "sms"),
+            bearer = null
+        )
+        saveSessionFromAuthResponse(response)
+    }
 
     override suspend fun refreshSessionIfNeeded(): Result<AuthSession?> = requestResult {
         val saved = sessionStore.read() ?: return@requestResult null
@@ -93,6 +103,18 @@ class SupabaseAuthRepository(context: Context) : AuthRepository {
     override suspend fun requestPasswordReset(email: String): Result<Unit> = requestResult {
         execute("/auth/v1/recover", JSONObject().put("email", email.trim()), bearer = null)
         Unit
+    }
+
+    private fun saveSessionFromAuthResponse(response: JSONObject): AuthSession {
+        val user = response.optJSONObject("user") ?: error("Сервер не вернул профиль пользователя")
+        val accessToken = response.optString("access_token")
+        val refreshToken = response.optString("refresh_token")
+        if (accessToken.isBlank() || refreshToken.isBlank()) error("Сервер не вернул токены сессии")
+        val expiresAt = response.optLong("expires_at").takeIf { it > 0 }
+            ?: (System.currentTimeMillis() / 1000L + response.optLong("expires_in", 3600L))
+        val saved = StoredSession(user.getString("id"), accessToken, refreshToken, expiresAt)
+        sessionStore.write(saved)
+        return saved.toAuthSession().also { mutableSession.value = it }
     }
 
     private suspend fun <T> requestResult(block: suspend () -> T): Result<T> =
