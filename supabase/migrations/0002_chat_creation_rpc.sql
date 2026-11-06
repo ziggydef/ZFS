@@ -8,7 +8,7 @@ create or replace function public.create_chat(
 returns uuid
 language plpgsql
 security definer
-set search_path = public, auth
+set search_path = ''
 as $$
 declare
   v_chat_id uuid;
