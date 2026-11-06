@@ -1,6 +1,23 @@
--- Stable, case-insensitive usernames for public discovery.
--- Existing profiles without a username remain valid.
-update public.profiles set username = lower(username) where username is not null;
+-- Normalize legacy handles and safely release invalid/case-colliding values
+-- before enforcing the public username policy.
+with ranked as (
+  select id, username,
+         row_number() over (partition by lower(username) order by created_at, id) as position
+    from public.profiles
+   where username is not null
+)
+update public.profiles p
+   set username = null
+  from ranked r
+ where p.id = r.id
+   and (
+     r.position > 1
+     or lower(r.username) !~ '^[a-z0-9_]{4,24}$'
+   );
+
+update public.profiles
+   set username = lower(username)
+ where username is not null;
 
 alter table public.profiles drop constraint if exists username_format;
 alter table public.profiles
