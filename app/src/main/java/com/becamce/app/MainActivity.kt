@@ -104,6 +104,7 @@ private fun MessengerShell(
     var selectedTab by remember { mutableStateOf("Чаты") }
     var search by remember { mutableStateOf("") }
     var openedChatId by remember { mutableStateOf<String?>(null) }
+    var openedChatTitle by remember { mutableStateOf("Диалог") }
     val currentSession by authRepository.session.collectAsState(initial = null)
     MaterialTheme(colorScheme = darkColorScheme(background = Night, surface = Panel, primary = Violet, onBackground = White, onSurface = White)) {
         Scaffold(
@@ -118,7 +119,7 @@ private fun MessengerShell(
                     ).forEach { (label, icon, route) ->
                         NavigationBarItem(
                             selected = selectedTab == route,
-                            onClick = { selectedTab = route; openedChatId = null },
+                            onClick = { selectedTab = route; openedChatId = null; openedChatTitle = "Диалог" },
                             icon = { Icon(icon, contentDescription = label) },
                             label = { Text(label) },
                             colors = NavigationBarItemDefaults.colors(selectedIconColor = Violet, selectedTextColor = Violet, indicatorColor = Color(0xFF28213A), unselectedIconColor = Muted, unselectedTextColor = Muted)
@@ -135,13 +136,20 @@ private fun MessengerShell(
             }
         ) { padding ->
             when {
-                openedChatId != null -> ConversationScreen(Modifier.padding(padding), openedChatId!!, chatRepository, currentSession?.userId.orEmpty()) { openedChatId = null }
+                openedChatId != null -> ConversationScreen(Modifier.padding(padding), openedChatId!!, openedChatTitle, chatRepository, currentSession?.userId.orEmpty()) {
+                    openedChatId = null
+                    openedChatTitle = "Диалог"
+                }
                 selectedTab == "Чаты" -> ChatsScreen(
                     Modifier.padding(padding), chatRepository, profileRepository,
                     currentSession?.userId.orEmpty(), search, { search = it }
-                ) { openedChatId = it }
-                selectedTab == "Контакты" -> PeopleScreen(Modifier.padding(padding), profileRepository, chatRepository) { chatId ->
+                ) { chatId, title ->
                     openedChatId = chatId
+                    openedChatTitle = title
+                }
+                selectedTab == "Контакты" -> PeopleScreen(Modifier.padding(padding), profileRepository, chatRepository) { chatId, title ->
+                    openedChatId = chatId
+                    openedChatTitle = title
                     selectedTab = "Чаты"
                 }
                 selectedTab == "Профиль" -> ProfileScreen(Modifier.padding(padding), authRepository, profileRepository)
@@ -159,7 +167,7 @@ private fun ChatsScreen(
     currentUserId: String,
     search: String,
     onSearchChange: (String) -> Unit,
-    onOpen: (String) -> Unit
+    onOpen: (String, String) -> Unit
 ) {
     var chats by remember { mutableStateOf<List<com.becamce.app.core.model.ChatSummary>>(emptyList()) }
     var profilesById by remember { mutableStateOf<Map<String, UserProfile>>(emptyMap()) }
@@ -223,7 +231,7 @@ private fun ChatsScreen(
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(bottom = 90.dp)) {
                     items(filtered, key = { it.id }) { chat ->
                         val title = displayTitle(chat)
-                        ChatRow(title, chat.lastMessage?.body ?: chat.lastMessage?.mediaFileName?.let { "📎 $it" } ?: "Начните общение", title.take(2).uppercase()) { onOpen(chat.id) }
+                        ChatRow(title, chat.lastMessage?.body ?: chat.lastMessage?.mediaFileName?.let { "📎 $it" } ?: "Начните общение", title.take(2).uppercase()) { onOpen(chat.id, title) }
                     }
                 }
             }
@@ -271,7 +279,7 @@ private fun PeopleScreen(
     modifier: Modifier,
     profiles: ProfileRepository,
     chats: ChatRepository,
-    onChatCreated: (String) -> Unit
+    onChatCreated: (String, String) -> Unit
 ) {
     var query by remember { mutableStateOf("") }
     var results by remember { mutableStateOf<List<UserProfile>>(emptyList()) }
@@ -315,8 +323,9 @@ private fun PeopleScreen(
                 onClick = {
                     scope.launch {
                         busyId = "group"
-                        chats.createChat(ChatKind.GROUP, groupTitle.trim().ifBlank { "Новая группа" }, selectedIds.toList())
-                            .onSuccess { selectedIds = emptySet(); groupTitle = ""; onChatCreated(it) }
+                        val title = groupTitle.trim().ifBlank { "Новая группа" }
+                        chats.createChat(ChatKind.GROUP, title, selectedIds.toList())
+                            .onSuccess { selectedIds = emptySet(); groupTitle = ""; onChatCreated(it, title) }
                             .onFailure { message = it.message ?: "Не удалось создать группу" }
                         busyId = null
                     }
@@ -355,7 +364,10 @@ private fun PeopleScreen(
                         scope.launch {
                             busyId = profile.id
                             chats.createChat(ChatKind.DIRECT, null, listOf(profile.id))
-                                .onSuccess(onChatCreated)
+                                .onSuccess { chatId ->
+                                    val title = profile.displayName.ifBlank { profile.username?.let { "@$it" } ?: "Личный чат" }
+                                    onChatCreated(chatId, title)
+                                }
                                 .onFailure { message = it.message ?: "Не удалось создать чат" }
                             busyId = null
                         }
@@ -367,7 +379,7 @@ private fun PeopleScreen(
 }
 
 @Composable
-private fun ConversationScreen(modifier: Modifier, chatId: String, repository: ChatRepository, currentUserId: String, onBack: () -> Unit) {
+private fun ConversationScreen(modifier: Modifier, chatId: String, chatTitle: String, repository: ChatRepository, currentUserId: String, onBack: () -> Unit) {
     var messages by remember { mutableStateOf<List<com.becamce.app.core.model.Message>>(emptyList()) }
     var draft by remember { mutableStateOf("") }
     var sending by remember { mutableStateOf(false) }
@@ -436,7 +448,7 @@ private fun ConversationScreen(modifier: Modifier, chatId: String, repository: C
     Column(modifier.fillMaxSize().background(Night).padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onBack) { Text("‹ Назад", color = Violet) }
-            Text("Диалог", color = White, fontSize = 21.sp, fontWeight = FontWeight.Bold)
+            Text(chatTitle, color = White, fontSize = 21.sp, fontWeight = FontWeight.Bold, maxLines = 1)
         }
         LazyColumn(state = listState, modifier = Modifier.weight(1f).fillMaxWidth(), reverseLayout = false, contentPadding = PaddingValues(vertical = 12.dp)) {
             items(messages, key = { it.id }) { msg ->
