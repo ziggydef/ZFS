@@ -9,8 +9,11 @@ data class BackendConfig(
     val publishableKey: String
 ) {
     val isConfigured: Boolean
-        get() = projectUrl.startsWith("https://") &&
-            projectUrl.contains(".supabase.co") &&
-            publishableKey.isNotBlank() &&
-            !publishableKey.contains("YOUR_", ignoreCase = true)
+        get() {
+            val host = projectUrl.trim().removePrefix("https://").substringBefore('/').trim()
+            return projectUrl.startsWith("https://", ignoreCase = true) &&
+                host.isNotBlank() &&
+                publishableKey.isNotBlank() &&
+                !publishableKey.contains("YOUR_", ignoreCase = true)
+        }
 }
