@@ -3,7 +3,7 @@
 The backend is planned on Supabase. A project must be created by the project owner; no credentials are committed to this repository.
 
 1. Create a Supabase project.
-2. Apply migrations in order in the SQL Editor: `0001_initial_schema.sql`, then `0002_chat_creation_rpc.sql`.
+2. Apply migrations in order in the SQL Editor: `0001_initial_schema.sql`, then `0002_chat_creation_rpc.sql`, then `0003_auth_profile_trigger.sql`.
 3. Enable the intended Auth providers and configure email verification.
 4. Create private Storage buckets for profile media and chat attachments.
 5. Add Storage policies based on chat membership and channel subscription.
