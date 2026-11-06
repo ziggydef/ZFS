@@ -100,12 +100,12 @@ language sql
 stable
 security definer
 set search_path = public
-as $
+as $$
   select exists (
     select 1 from public.chat_members m
     where m.chat_id = p_chat_id and m.user_id = auth.uid()
   );
-$;
+$$;
 
 create policy "Profiles visible to authenticated users"
 on public.profiles for select to authenticated using (true);
