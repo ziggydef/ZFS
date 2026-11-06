@@ -30,12 +30,16 @@ class SupabaseAuthRepository(context: Context) : AuthRepository {
     private val mutableSession = MutableStateFlow(sessionStore.read()?.toAuthSession())
     override val session = mutableSession.asStateFlow()
 
-    override suspend fun signUp(email: String, password: String, displayName: String): Result<Unit> =
+    override suspend fun signUp(username: String, password: String, displayName: String): Result<Unit> =
         requestResult {
+            val cleanUsername = username.trim().lowercase()
+            val internalEmail = cleanUsername + "@auth.becamce.invalid"
             val body = JSONObject()
-                .put("email", email.trim())
+                .put("email", internalEmail)
                 .put("password", password)
-                .put("data", JSONObject().put("display_name", displayName.trim()))
+                .put("data", JSONObject()
+                    .put("display_name", displayName.trim())
+                    .put("username", cleanUsername))
             val response = execute("/auth/v1/signup", body, bearer = null)
             if (response.has("access_token") && response.has("refresh_token")) {
                 saveSessionFromAuthResponse(response)
@@ -43,30 +47,13 @@ class SupabaseAuthRepository(context: Context) : AuthRepository {
             Unit
         }
 
-    override suspend fun signIn(email: String, password: String): Result<AuthSession> =
+    override suspend fun signIn(username: String, password: String): Result<AuthSession> =
         requestResult {
-            val body = JSONObject().put("email", email.trim()).put("password", password)
+            val internalEmail = username.trim().lowercase() + "@auth.becamce.invalid"
+            val body = JSONObject().put("email", internalEmail).put("password", password)
             val response = execute("/auth/v1/token?grant_type=password", body, bearer = null)
             saveSessionFromAuthResponse(response)
         }
-
-    override suspend fun requestPhoneCode(phone: String, displayName: String): Result<Unit> = requestResult {
-        val body = JSONObject()
-            .put("phone", phone.trim())
-            .put("create_user", true)
-            .put("data", JSONObject().put("display_name", displayName.trim()))
-        execute("/auth/v1/otp", body, bearer = null)
-        Unit
-    }
-
-    override suspend fun verifyPhoneCode(phone: String, code: String): Result<AuthSession> = requestResult {
-        val response = execute(
-            "/auth/v1/verify",
-            JSONObject().put("phone", phone.trim()).put("token", code.trim()).put("type", "sms"),
-            bearer = null
-        )
-        saveSessionFromAuthResponse(response)
-    }
 
     override suspend fun refreshSessionIfNeeded(): Result<AuthSession?> = refreshMutex.withLock { requestResult {
         val saved = sessionStore.read() ?: return@requestResult null
@@ -117,39 +104,6 @@ class SupabaseAuthRepository(context: Context) : AuthRepository {
         }
         Unit
     } }
-
-    override suspend fun requestPasswordReset(email: String): Result<Unit> = requestResult {
-        execute("/auth/v1/recover?redirect_to=becamce%3A%2F%2Fauth%2Fcallback", JSONObject().put("email", email.trim()), bearer = null)
-        Unit
-    }
-
-    override suspend fun completePasswordRecovery(accessToken: String, newPassword: String): Result<Unit> = requestResult {
-        require(accessToken.isNotBlank()) { "Ссылка восстановления недействительна или устарела" }
-        require(newPassword.length >= 10 && newPassword.any(Char::isLetter) && newPassword.any(Char::isDigit)) {
-            "Пароль должен содержать не менее 10 символов, буквы и цифры"
-        }
-        withContext(Dispatchers.IO) {
-            check(config.isConfigured) { "Supabase пока не подключён." }
-            val request = Request.Builder()
-                .url(config.projectUrl.trimEnd('/') + "/auth/v1/user")
-                .header("apikey", config.publishableKey)
-                .header("Authorization", "Bearer $accessToken")
-                .header("Content-Type", "application/json")
-                .put(JSONObject().put("password", newPassword).toString().toRequestBody(JSON_MEDIA_TYPE))
-                .build()
-            client.newCall(request).execute().use { response ->
-                val text = response.body?.string().orEmpty()
-                if (!response.isSuccessful) {
-                    val message = runCatching {
-                        val json = JSONObject(text)
-                        json.optString("msg").ifBlank { json.optString("message").ifBlank { json.optString("error_description") } }
-                    }.getOrNull().orEmpty()
-                    throw IOException(message.ifBlank { "Не удалось изменить пароль (" + response.code + ")" })
-                }
-            }
-        }
-        Unit
-    }
 
     private fun saveSessionFromAuthResponse(response: JSONObject): AuthSession {
         val user = response.optJSONObject("user") ?: error("Сервер не вернул профиль пользователя")
