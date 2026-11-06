@@ -4,7 +4,7 @@ The backend uses Supabase. The project owner must create the Supabase project; c
 
 1. Create a Supabase project.
 2. Apply every SQL migration in order: `0001_initial_schema.sql` through `0012_private_chat_attachments.sql`.
-3. Enable Email Auth in Authentication → Sign In / Providers. Phone sign-in is intentionally hidden in the current app version; no SMS provider is needed for the current email-only milestone.
+3. Enable Email Auth in Authentication → Sign In / Providers. Add `becamce://auth/callback` to Authentication → URL Configuration → Redirect URLs so password-reset links return to the app. Phone sign-in is intentionally hidden in the current app version; no SMS provider is needed for the current email-only milestone.
 4. Add the project URL and publishable/anon key as GitHub Actions repository secrets named `SUPABASE_URL` and `SUPABASE_ANON_KEY`.
 5. Never put a service-role key in the Android app, source control, Actions secrets used by the client build, screenshots, or chat.
 6. Test policies with at least two separate test accounts before using real user data.
@@ -19,6 +19,6 @@ The app supports public usernames of 4–24 lowercase ASCII letters, digits, and
 
 ## Current implementation notes
 
-Email sign-up/sign-in/password reset, encrypted session storage, profile editing, username availability checks, profile discovery, direct-chat creation (reusing an existing conversation), group creation from selected search results, and basic message send/read screens are implemented in the client. Chat and message updates currently use periodic PostgREST polling, not Supabase Realtime. Group administration UI, voice messages, calls, channels, bots, push notifications, and end-to-end encryption remain unfinished. Chat attachments support selected image, PDF, text, ZIP and Office formats up to 20 MB; files are stored privately and opened using short-lived signed URLs. Supabase behavior has not been verified against a live project.
+Email sign-up/sign-in, password-reset email and in-app password update through the recovery deep link, encrypted session storage, profile editing, username availability checks, profile discovery, direct-chat creation (reusing an existing conversation), group creation from selected search results, and basic message send/read screens are implemented in the client. Chat and message updates currently use periodic PostgREST polling, not Supabase Realtime. Group administration UI, voice messages, calls, channels, bots, push notifications, and end-to-end encryption remain unfinished. Chat attachments support selected image, PDF, text, ZIP and Office formats up to 20 MB; files are stored privately and opened using short-lived signed URLs. Supabase behavior has not been verified against a live project.
 
 Phone OTP methods remain in the data layer for a future release, but phone UI is disabled. Real SMS delivery would require a provider and may cost money. Keep message expiry and storage authorization server-side; client-side checks are not security boundaries.
