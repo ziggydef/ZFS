@@ -33,7 +33,8 @@ Items are marked complete when implemented in source; live-backend verification 
 - [x] Edit/delete/read RPCs in data layer
 - [ ] Supabase Realtime WebSocket delivery
 - [ ] Pagination, local cache and offline queue
-- [ ] Reply, edit, delete and delivery/read state in UI
+- [x] Edit/delete own messages in the conversation UI
+- [ ] Reply and delivery/read state in UI
 - [ ] Group membership management, roles and invites
 - [ ] Image/video/document uploads and private storage
 - [ ] Voice recording and playback
