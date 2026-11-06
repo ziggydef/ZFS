@@ -94,6 +94,34 @@ class SupabaseChatRepository(context: Context) : ChatRepository {
         Unit
     }
 
+    override suspend fun addGroupMember(chatId: String, userId: String): Result<Unit> = result {
+        requireValidUuid(chatId)
+        requireValidUuid(userId)
+        request(
+            "rpc/manage_group_member",
+            "POST",
+            JSONObject().put("p_chat_id", chatId).put("p_user_id", userId).put("p_action", "add")
+        )
+        Unit
+    }
+
+    override suspend fun removeGroupMember(chatId: String, userId: String): Result<Unit> = result {
+        requireValidUuid(chatId)
+        requireValidUuid(userId)
+        request(
+            "rpc/manage_group_member",
+            "POST",
+            JSONObject().put("p_chat_id", chatId).put("p_user_id", userId).put("p_action", "remove")
+        )
+        Unit
+    }
+
+    private fun requireValidUuid(value: String) {
+        require(value.matches(Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"))) {
+            "Некорректный идентификатор"
+        }
+    }
+
     private suspend fun fetchChats(): List<ChatSummary> {
         val userId = requireUserId()
         val raw = request(
