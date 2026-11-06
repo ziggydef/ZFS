@@ -2,11 +2,23 @@ package com.becamce.app.core.domain
 
 object InputValidation {
     private val emailPattern = Regex("^[A-Za-z0-9.!#$%&'*+/=?^`{|}~-]+@[A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)+$")
+    private val phonePattern = Regex("^\\+[1-9][0-9]{7,14}$")
     private val usernamePattern = Regex("^[a-zA-Z0-9_]{4,24}$")
 
     fun email(value: String): String? = when {
         value.isBlank() -> "Введите электронную почту"
         !emailPattern.matches(value.trim()) -> "Проверьте адрес электронной почты"
+        else -> null
+    }
+
+    fun phone(value: String): String? = when {
+        value.isBlank() -> "Введите номер телефона в международном формате"
+        !phonePattern.matches(value.trim()) -> "Формат номера: +4915112345678"
+        else -> null
+    }
+
+    fun smsCode(value: String): String? = when {
+        !value.matches(Regex("^[0-9]{6}$")) -> "Введите 6-значный код из SMS"
         else -> null
     }
 
