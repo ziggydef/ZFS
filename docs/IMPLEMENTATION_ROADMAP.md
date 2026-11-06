@@ -30,7 +30,7 @@ This is the delivery checklist for becamce. Items are not considered complete un
 - [x] Atomic direct/group chat creation RPC with initial membership
 - [x] Supabase PostgREST chat repository and atomic chat creation call
 - [x] Message send, edit, delete and read-position RPC integration in data layer
-- [ ] Direct-chat UI and contact discovery
+- [ ] Direct-chat UI integration and contact discovery
 - [ ] Group membership management, roles and invites
 - [ ] Message send/receive with Realtime (initial repository currently polls; websocket transport pending)
 - [ ] Pagination, local cache, offline queue
