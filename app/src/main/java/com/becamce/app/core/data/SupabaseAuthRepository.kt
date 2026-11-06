@@ -161,7 +161,11 @@ class SupabaseAuthRepository(context: Context) : AuthRepository {
     }
 
     private suspend fun <T> requestResult(block: suspend () -> T): Result<T> =
-        try { Result.success(block()) } catch (error: Exception) {
+        try {
+            Result.success(block())
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
             Result.failure(error)
         }
 
