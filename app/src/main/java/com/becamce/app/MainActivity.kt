@@ -12,6 +12,10 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.consume
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -25,6 +29,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AttachFile
 import androidx.compose.material.icons.rounded.Call
+import androidx.compose.material.icons.rounded.ContentCopy
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.DeleteOutline
 import androidx.compose.material.icons.rounded.ChatBubbleOutline
 import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.Person
@@ -33,6 +40,8 @@ import androidx.compose.material.icons.rounded.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -374,9 +383,11 @@ private fun ConversationScreen(modifier: Modifier, chatId: String, chatTitle: St
     var editingDraft by remember { mutableStateOf("") }
     var deleteConfirmMessageId by remember { mutableStateOf<String?>(null) }
     var replyingTo by remember { mutableStateOf<com.becamce.app.core.model.Message?>(null) }
+    var selectedMessageId by remember { mutableStateOf<String?>(null) }
     var actionBusy by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val clipboard = LocalClipboardManager.current
     val attachmentPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
@@ -434,7 +445,10 @@ private fun ConversationScreen(modifier: Modifier, chatId: String, chatTitle: St
     Column(modifier.fillMaxSize().background(Night).padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onBack) { Text("‹ Назад", color = Violet) }
-            Text(chatTitle, color = White, fontSize = 21.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+            Text(chatTitle, modifier = Modifier.weight(1f), color = White, fontSize = 21.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+            IconButton(onClick = { error = "Звонки ещё не подключены — кнопка не запускает фиктивный вызов." }) {
+                Icon(Icons.Rounded.Call, contentDescription = "Позвонить", tint = Violet)
+            }
         }
         LazyColumn(state = listState, modifier = Modifier.weight(1f).fillMaxWidth(), reverseLayout = false, contentPadding = PaddingValues(vertical = 12.dp)) {
             items(messages, key = { it.id }) { msg ->
@@ -443,58 +457,104 @@ private fun ConversationScreen(modifier: Modifier, chatId: String, chatTitle: St
                     Modifier.fillMaxWidth().padding(vertical = 3.dp),
                     horizontalArrangement = if (ownMessage) Arrangement.End else Arrangement.Start
                 ) {
-                    Column(
-                        Modifier.widthIn(max = 300.dp).clip(
-                            RoundedCornerShape(
-                                topStart = 18.dp, topEnd = 18.dp,
-                                bottomEnd = if (ownMessage) 5.dp else 18.dp,
-                                bottomStart = if (ownMessage) 18.dp else 5.dp
-                            )
-                        ).background(if (ownMessage) Color(0xFF44336E) else Panel).padding(horizontal = 13.dp, vertical = 10.dp)
-                    ) {
-                        msg.replyTo?.let { replyId ->
-                            messages.firstOrNull { it.id == replyId }?.let { replied ->
-                                Text("↳ ${replied.body.orEmpty().take(100)}", color = White.copy(alpha = .62f), fontSize = 10.sp)
+                    Box {
+                        Column(
+                            Modifier.widthIn(max = 300.dp).clip(
+                                RoundedCornerShape(
+                                    topStart = 18.dp, topEnd = 18.dp,
+                                    bottomEnd = if (ownMessage) 5.dp else 18.dp,
+                                    bottomStart = if (ownMessage) 18.dp else 5.dp
+                                )
+                            ).background(if (ownMessage) Color(0xFF44336E) else Panel)
+                                .combinedClickable(
+                                    onClick = { selectedMessageId = msg.id },
+                                    onLongClick = { selectedMessageId = msg.id }
+                                )
+                                .pointerInput(msg.id) {
+                                    var rightDrag = 0f
+                                    detectHorizontalDragGestures(
+                                        onHorizontalDrag = { change, amount ->
+                                            if (amount > 0) rightDrag += amount
+                                            change.consume()
+                                        },
+                                        onDragEnd = {
+                                            if (rightDrag > 64f) replyingTo = msg
+                                            rightDrag = 0f
+                                        },
+                                        onDragCancel = { rightDrag = 0f }
+                                    )
+                                }
+                                .padding(horizontal = 13.dp, vertical = 10.dp)
+                        ) {
+                            msg.replyTo?.let { replyId ->
+                                messages.firstOrNull { it.id == replyId }?.let { replied ->
+                                    Text("↳ ${replied.body.orEmpty().take(100)}", color = White.copy(alpha = .62f), fontSize = 10.sp)
+                                }
+                            }
+                            msg.mediaPath?.let { path ->
+                                Text(
+                                    "📎 ${msg.mediaFileName ?: "Вложение"}",
+                                    color = Color(0xFFD8C9FF),
+                                    fontSize = 13.sp,
+                                    modifier = Modifier.clickable(enabled = !sending) {
+                                        scope.launch {
+                                            sending = true
+                                            repository.getAttachmentUrl(path).onSuccess { url ->
+                                                runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+                                                    .onFailure { error = "Не удалось открыть файл" }
+                                            }.onFailure { error = it.message ?: "Не удалось получить файл" }
+                                            sending = false
+                                        }
+                                    }.padding(vertical = 4.dp)
+                                )
+                            }
+                            msg.body?.let { Text(it, color = White, fontSize = 14.sp) }
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (msg.editedAt != null) Text("изм. ", color = White.copy(alpha = .52f), fontSize = 9.sp)
+                                Text(msg.createdAt.atZone(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")),
+                                    color = White.copy(alpha = .52f), fontSize = 9.sp)
                             }
                         }
-                        msg.mediaPath?.let { path ->
-                            Text(
-                                "📎 ${msg.mediaFileName ?: "Вложение"}",
-                                color = Color(0xFFD8C9FF),
-                                fontSize = 13.sp,
-                                modifier = Modifier.clickable(enabled = !sending) {
-                                    scope.launch {
-                                        sending = true
-                                        repository.getAttachmentUrl(path).onSuccess { url ->
-                                            runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
-                                                .onFailure { error = "Не удалось открыть файл" }
-                                        }.onFailure { error = it.message ?: "Не удалось получить файл" }
-                                        sending = false
-                                    }
-                                }.padding(vertical = 4.dp)
+                        DropdownMenu(
+                            expanded = selectedMessageId == msg.id,
+                            onDismissRequest = { selectedMessageId = null },
+                            modifier = Modifier.background(Panel)
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Ответить", color = White) },
+                                leadingIcon = { Icon(Icons.Rounded.ChatBubbleOutline, null, tint = Violet) },
+                                onClick = { replyingTo = msg; selectedMessageId = null }
                             )
-                        }
-                        msg.body?.let { Text(it, color = White, fontSize = 14.sp) }
-                        if (msg.editedAt != null) Text("изменено", color = White.copy(alpha = .58f), fontSize = 9.sp)
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            TextButton(
-                                enabled = !actionBusy,
-                                contentPadding = PaddingValues(0.dp),
-                                onClick = { replyingTo = msg }
-                            ) { Text("Ответить", color = Color.White.copy(alpha = .72f), fontSize = 10.sp) }
-                        }
-                        if (ownMessage) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                TextButton(
+                            DropdownMenuItem(
+                                text = { Text("Копировать", color = White) },
+                                leadingIcon = { Icon(Icons.Rounded.ContentCopy, null, tint = Violet) },
+                                enabled = !msg.body.isNullOrBlank(),
+                                onClick = {
+                                    msg.body?.let { clipboard.setText(AnnotatedString(it)) }
+                                    selectedMessageId = null
+                                }
+                            )
+                            if (ownMessage) {
+                                DropdownMenuItem(
+                                    text = { Text("Изменить", color = White) },
+                                    leadingIcon = { Icon(Icons.Rounded.Edit, null, tint = Violet) },
+                                    enabled = !actionBusy && !msg.body.isNullOrBlank(),
+                                    onClick = {
+                                        editingMessageId = msg.id
+                                        editingDraft = msg.body.orEmpty()
+                                        selectedMessageId = null
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Удалить", color = Color(0xFFFFA0AD)) },
+                                    leadingIcon = { Icon(Icons.Rounded.DeleteOutline, null, tint = Color(0xFFFFA0AD)) },
                                     enabled = !actionBusy,
-                                    contentPadding = PaddingValues(0.dp),
-                                    onClick = { editingMessageId = msg.id; editingDraft = msg.body.orEmpty() }
-                                ) { Text("Изменить", color = Color.White.copy(alpha = .72f), fontSize = 10.sp) }
-                                TextButton(
-                                    enabled = !actionBusy,
-                                    contentPadding = PaddingValues(0.dp),
-                                    onClick = { deleteConfirmMessageId = msg.id }
-                                ) { Text("Удалить", color = Color(0xFFFFA0AD), fontSize = 10.sp) }
+                                    onClick = { deleteConfirmMessageId = msg.id; selectedMessageId = null }
+                                )
                             }
                         }
                     }
