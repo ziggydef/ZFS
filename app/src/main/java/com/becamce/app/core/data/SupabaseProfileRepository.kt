@@ -3,6 +3,7 @@ package com.becamce.app.core.data
 import android.content.Context
 import com.becamce.app.BuildConfig
 import com.becamce.app.core.domain.ProfileRepository
+import com.becamce.app.core.domain.AuthRepository
 import com.becamce.app.core.model.UserProfile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -16,7 +17,7 @@ import java.io.IOException
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
-class SupabaseProfileRepository(context: Context) : ProfileRepository {
+class SupabaseProfileRepository(context: Context, private val authRepository: AuthRepository) : ProfileRepository {
     private val config = BackendConfig(BuildConfig.SUPABASE_URL, BuildConfig.SUPABASE_ANON_KEY)
     private val sessions = SecureSessionStore(context.applicationContext)
     private val client = OkHttpClient.Builder()
@@ -80,6 +81,7 @@ class SupabaseProfileRepository(context: Context) : ProfileRepository {
     private suspend fun request(path: String, method: String, payload: JSONObject? = null): String =
         withContext(Dispatchers.IO) {
             check(config.isConfigured) { "Supabase пока не подключён. Нужны URL и публичный ключ проекта." }
+            authRepository.refreshSessionIfNeeded().getOrElse { throw it }
             val session = sessions.read() ?: throw IOException("Войдите в аккаунт, чтобы продолжить.")
             val builder = Request.Builder().url(config.projectUrl.trimEnd('/') + "/rest/v1/" + path)
                 .header("apikey", config.publishableKey)
