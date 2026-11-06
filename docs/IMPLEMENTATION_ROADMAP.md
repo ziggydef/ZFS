@@ -1,64 +1,55 @@
 # Implementation roadmap
 
-This is the delivery checklist for becamce. Items are not considered complete until implemented and verified.
+Items are marked complete when implemented in source; live-backend verification and release testing are tracked separately.
 
 ## Foundation
-- [x] Private GitHub repository
-- [x] Kotlin / Compose Android project
-- [x] Initial dark glass chat-list UI
+- [x] Private GitHub repository and Android Compose project
+- [x] Dark violet glass-inspired interface
 - [x] Manual-only final APK workflow
-- [x] Initial PostgreSQL schema and RLS baseline
-- [x] Domain models and repository contracts for auth, profiles and chats
-- [x] Shared validation rules and JUnit tests for account/message input
-- [x] Dependency/build compatibility review without triggering APK builds
-- [ ] Unit and UI test coverage
+- [x] PostgreSQL schema, RLS baseline and ordered migrations
+- [x] Domain models, repository contracts and input validation tests
+- [ ] Full unit/UI test coverage and dependency/build verification
 
-## Identity and sessions
-- [x] SQL auth profile trigger and ordered backend migrations
-- [ ] Supabase project and Auth configuration + GitHub Actions secrets
+## Identity and usernames
 - [x] Email sign-up, sign-in and password-reset UI
-- [ ] Phone sign-in UI deferred by product decision; backend endpoints retained for later
 - [x] Supabase Auth REST integration
-- [x] Android Keystore encrypted session persistence and refresh
-- [x] Sign-out UI
-- [ ] End-to-end account flow verification against a configured Supabase project
-- [x] Profile fetch/update and username availability repository
-- [x] Secure encrypted session persistence
-- [ ] Logout-all-devices and full account lifecycle
+- [x] Android Keystore encrypted session storage and refresh
+- [x] Sign-out
+- [x] Profile read/update
+- [x] Public username editor and server-side case-insensitive uniqueness
+- [x] Username availability check and profile search by username/display name
+- [ ] Supabase project configuration and live account-flow verification
+- [ ] Account deletion, session revocation and lifecycle hardening
+- [ ] Phone login UI (intentionally deferred)
 
 ## Messaging
-- [x] Atomic direct/group chat creation RPC with initial membership
-- [x] Supabase PostgREST chat repository and atomic chat creation call
-- [x] Message send, edit, delete and read-position RPC integration in data layer
-- [ ] Direct-chat UI integration and contact discovery
+- [x] Atomic direct/group chat creation RPC
+- [x] Chat and message PostgREST repository
+- [x] Direct-chat creation from people search
+- [x] Basic chat list and conversation screen
+- [x] Send message and periodic message refresh
+- [x] Edit/delete/read RPCs in data layer
+- [ ] Supabase Realtime WebSocket delivery
+- [ ] Pagination, local cache and offline queue
+- [ ] Reply, edit, delete and delivery/read state in UI
 - [ ] Group membership management, roles and invites
-- [ ] Message send/receive with Realtime (initial repository currently polls; websocket transport pending)
-- [ ] Pagination, local cache, offline queue
-- [ ] Reply, edit, delete, delivery/read state
-- [ ] Image, video and document upload with private storage
-- [ ] Voice recording, playback and upload
+- [ ] Image/video/document uploads and private storage
+- [ ] Voice recording and playback
 
 ## Privacy and safety
-- [ ] Secret-chat protocol selection and implementation using audited libraries
-- [ ] Device identity and safety-number verification
+- [ ] Audited secret-chat protocol and device verification
 - [ ] Encrypted attachment format
 - [ ] Server-side expiry/deletion worker
 - [ ] Block/report controls and rate limits
+- [ ] Security review and RLS testing with multiple accounts
 
-## Channels and bots
-- [ ] Public/private channels and subscriptions
-- [x] RLS hardening for public subscriptions and channel post edits
-- [x] Secure message edit/delete RPCs with restricted direct table mutation
-- [ ] Channel publishing and moderation roles
-- [ ] Bot registration and scoped API tokens
-- [ ] Bot permissions, quotas, revocation and abuse controls
-
-## Product finish
-- [ ] Theme editor and message appearance settings
+## Other product features
+- [ ] Channels and moderation
+- [ ] Bot registration and scoped API
 - [ ] Push notifications
-- [ ] Accessibility and localization review
-- [ ] Security review and migration tests
-- [ ] One final GitHub Actions APK build
+- [ ] Theme editor, accessibility and localization review
 
-## Build discipline
-The workflow is manual-only. Do not run it during implementation. The final workflow dispatch must be performed once after all planned release checks pass.
+## Release
+- [ ] Configure Supabase URL/key in repository Actions secrets
+- [ ] Run automated tests and inspect final source changes
+- [ ] One final GitHub Actions APK build
