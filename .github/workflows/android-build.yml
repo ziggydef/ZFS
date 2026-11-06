@@ -1,17 +1,10 @@
 name: becamce Android Build
 on:
   workflow_dispatch:
-    inputs:
-      confirm_final:
-        description: "Run the single final APK build"
-        required: true
-        type: boolean
-        default: false
 permissions:
   contents: read
 jobs:
   build:
-    if: inputs.confirm_final == true
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
