@@ -95,7 +95,7 @@ private fun BecamceApp() {
     val session by authRepository.session.collectAsState(initial = null)
     MaterialTheme(colorScheme = darkColorScheme(background = Night, surface = Panel, primary = Violet, onBackground = White, onSurface = White)) {
         if (session == null) AuthScreen(authRepository)
-        else MessengerShell(authRepository, profileRepository, chatRepository)
+        else MessengerShell(authRepository, profileRepository, chatRepository, callRepository)
     }
 }
 
@@ -103,7 +103,8 @@ private fun BecamceApp() {
 private fun MessengerShell(
     authRepository: AuthRepository,
     profileRepository: ProfileRepository,
-    chatRepository: ChatRepository
+    chatRepository: ChatRepository,
+    callRepository: SupabaseCallRepository
 ) {
     var selectedTab by remember { mutableStateOf("Чаты") }
     var search by remember { mutableStateOf("") }
@@ -187,7 +188,7 @@ private fun CallsScreen(
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     LaunchedEffect(repository) {
-        repository.observeIncomingCalls().collect { incoming = it; error = null }
+        repository.observeIncomingCalls().catch { error = it.message ?: "Не удалось проверить входящие звонки" }.collect { incoming = it; error = null }
     }
     Column(modifier.fillMaxSize().background(Night).padding(20.dp)) {
         Text("Звонки", color = White, fontSize = 27.sp, fontWeight = FontWeight.Bold)
