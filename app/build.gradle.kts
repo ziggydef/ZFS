@@ -3,27 +3,33 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
 }
+
 android {
     namespace = "com.becamce.app"
     compileSdk = 36
+
     defaultConfig {
         applicationId = "com.becamce.app"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "0.1.0"
+        buildConfigField("String", "SUPABASE_URL", "\"\${System.getenv("SUPABASE_URL") ?: ""}\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"\${System.getenv("SUPABASE_ANON_KEY") ?: ""}\"")
     }
-    buildFeatures { compose = true; buildConfig = true }
-    defaultConfig {
-        buildConfigField("String", "SUPABASE_URL", "\\\"${System.getenv(\"SUPABASE_URL\") ?: \"\"}\\\"")
-        buildConfigField("String", "SUPABASE_ANON_KEY", "\\\"${System.getenv(\"SUPABASE_ANON_KEY\") ?: \"\"}\\\"")
+
+    buildFeatures {
+        compose = true
+        buildConfig = true
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
 }
+
 dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2025.10.00")
     implementation(composeBom)
