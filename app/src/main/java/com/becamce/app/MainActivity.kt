@@ -310,6 +310,7 @@ private fun ConversationScreen(modifier: Modifier, chatId: String, repository: C
     var error by remember { mutableStateOf<String?>(null) }
     var editingMessageId by remember { mutableStateOf<String?>(null) }
     var editingDraft by remember { mutableStateOf("") }
+    var deleteConfirmMessageId by remember { mutableStateOf<String?>(null) }
     var replyingTo by remember { mutableStateOf<com.becamce.app.core.model.Message?>(null) }
     var actionBusy by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -317,6 +318,7 @@ private fun ConversationScreen(modifier: Modifier, chatId: String, repository: C
     LaunchedEffect(chatId) { repository.markRead(chatId); repository.observeMessages(chatId).catch { error = it.message ?: "Не удалось загрузить сообщения" }.collect { messages = it } }
     LaunchedEffect(messages.size) { if (messages.isNotEmpty()) listState.animateScrollToItem(messages.lastIndex) }
     val editingMessage = messages.firstOrNull { it.id == editingMessageId }
+    val deleteConfirmMessage = messages.firstOrNull { it.id == deleteConfirmMessageId }
     Column(modifier.fillMaxSize().background(Night).padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onBack) { Text("‹ Назад", color = Violet) }
@@ -362,13 +364,7 @@ private fun ConversationScreen(modifier: Modifier, chatId: String, repository: C
                                 TextButton(
                                     enabled = !actionBusy,
                                     contentPadding = PaddingValues(0.dp),
-                                    onClick = {
-                                        scope.launch {
-                                            actionBusy = true
-                                            repository.deleteMessage(msg.id).onFailure { error = it.message ?: "Не удалось удалить сообщение" }
-                                            actionBusy = false
-                                        }
-                                    }
+                                    onClick = { deleteConfirmMessageId = msg.id }
                                 ) { Text("Удалить", color = Color(0xFFFFA0AD), fontSize = 10.sp) }
                             }
                         }
@@ -436,6 +432,35 @@ private fun ConversationScreen(modifier: Modifier, chatId: String, repository: C
             },
             dismissButton = {
                 TextButton(enabled = !actionBusy, onClick = { editingMessageId = null }) {
+                    Text("Отмена", color = Muted)
+                }
+            },
+            containerColor = Panel,
+            titleContentColor = White,
+            textContentColor = White
+        )
+    }
+    if (deleteConfirmMessage != null) {
+        AlertDialog(
+            onDismissRequest = { if (!actionBusy) deleteConfirmMessageId = null },
+            title = { Text("Удалить сообщение?") },
+            text = { Text("Сообщение будет удалено для участников чата.", color = Muted) },
+            confirmButton = {
+                TextButton(
+                    enabled = !actionBusy,
+                    onClick = {
+                        scope.launch {
+                            actionBusy = true
+                            repository.deleteMessage(deleteConfirmMessage.id)
+                                .onSuccess { deleteConfirmMessageId = null }
+                                .onFailure { error = it.message ?: "Не удалось удалить сообщение" }
+                            actionBusy = false
+                        }
+                    }
+                ) { Text(if (actionBusy) "Удаляем…" else "Удалить", color = Color(0xFFFFA0AD)) }
+            },
+            dismissButton = {
+                TextButton(enabled = !actionBusy, onClick = { deleteConfirmMessageId = null }) {
                     Text("Отмена", color = Muted)
                 }
             },
