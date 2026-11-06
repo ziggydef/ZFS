@@ -16,4 +16,5 @@ interface AuthRepository {
     suspend fun refreshSessionIfNeeded(): Result<AuthSession?>
     suspend fun signOut(): Result<Unit>
     suspend fun requestPasswordReset(email: String): Result<Unit>
+    suspend fun completePasswordRecovery(accessToken: String, newPassword: String): Result<Unit>
 }
