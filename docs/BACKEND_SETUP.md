@@ -13,3 +13,14 @@ The backend is planned on Supabase. A project must be created by the project own
 9. Test every RLS policy with at least two separate test accounts before real user data is used.
 
 The current Android app does not connect to this backend yet. Do not paste service-role keys into source code, GitHub commits, screenshots, or chat.
+
+
+## Android app configuration
+
+The Android client reads two build-time environment variables:
+- `SUPABASE_URL`: project URL, for example `https://your-project.supabase.co`
+- `SUPABASE_ANON_KEY`: the project's publishable/anon key (safe for a client when RLS is correctly configured)
+
+For GitHub Actions, add repository Actions secrets with those exact names. The workflow passes them into Gradle during the final build. Do not add a service-role key to GitHub Actions or the Android app.
+
+The current Android auth screen supports email sign-up, sign-in and password-reset requests. Session tokens are encrypted with an AES key held by Android Keystore. Supabase email confirmation settings still apply. The app currently needs the Supabase project and keys before authentication requests can succeed.
