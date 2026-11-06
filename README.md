@@ -15,7 +15,8 @@ Native Android messenger built with Kotlin and Jetpack Compose.
 - People search by `@username` or display name
 - Direct-chat creation from search results
 - Basic chat list, conversation view and message sending
-- Message edit/delete/read RPCs in the data layer
+- Edit/delete own messages in the conversation UI, backed by server-checked RPCs
+- Mark-chat-read RPC and periodic message refresh
 - Manual-only GitHub Actions APK workflow
 
 ## Not yet release-complete
