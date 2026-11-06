@@ -21,6 +21,8 @@ import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
+import com.becamce.app.core.data.SupabaseAuthRepository
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,6 +56,16 @@ private val demoChats = listOf(
 
 @Composable
 private fun BecamceApp() {
+    val context = LocalContext.current
+    val authRepository = remember { SupabaseAuthRepository(context.applicationContext) }
+    val session by authRepository.session.collectAsState()
+    MaterialTheme(colorScheme = darkColorScheme(background = Night, surface = Panel, primary = Violet, onBackground = White, onSurface = White)) {
+        if (session == null) AuthScreen(authRepository) else MessengerShell()
+    }
+}
+
+@Composable
+private fun MessengerShell() {
     var selectedTab by remember { mutableStateOf("Чаты") }
     var search by remember { mutableStateOf("") }
     MaterialTheme(colorScheme = darkColorScheme(background = Night, surface = Panel, primary = Violet, onBackground = White, onSurface = White)) {
