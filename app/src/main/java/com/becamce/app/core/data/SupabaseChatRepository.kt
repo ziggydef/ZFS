@@ -36,6 +36,10 @@ class SupabaseChatRepository(context: Context, private val authRepository: AuthR
         .readTimeout(20, TimeUnit.SECONDS)
         .callTimeout(25, TimeUnit.SECONDS)
         .build()
+    private val attachmentClient = client.newBuilder()
+        .writeTimeout(120, TimeUnit.SECONDS)
+        .callTimeout(120, TimeUnit.SECONDS)
+        .build()
 
     override fun observeChats(): Flow<List<ChatSummary>> = flow {
         while (currentCoroutineContext().isActive) {
@@ -105,7 +109,7 @@ class SupabaseChatRepository(context: Context, private val authRepository: AuthR
                 .header("Authorization", "Bearer " + session.accessToken)
                 .header("x-upsert", "false")
                 .post(body).build()
-            client.newCall(request).execute().use { response ->
+            attachmentClient.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) {
                     val detail = response.body?.string().orEmpty()
                     throw IOException(detail.ifBlank { "Не удалось загрузить файл (${response.code})" })
