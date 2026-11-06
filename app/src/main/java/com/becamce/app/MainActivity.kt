@@ -246,7 +246,7 @@ private fun PeopleScreen(
                 label = { Text("Название группы") }, singleLine = true,
                 modifier = Modifier.fillMaxWidth(), colors = profileFieldColors()
             )
-            Text("${selectedIds.size} выбрано · для группы выбери минимум двух человек", color = Muted, fontSize = 11.sp)
+            Text("${selectedIds.size} выбрано · для группы выбери хотя бы одного человека", color = Muted, fontSize = 11.sp)
             Button(
                 onClick = {
                     scope.launch {
@@ -257,7 +257,7 @@ private fun PeopleScreen(
                         busyId = null
                     }
                 },
-                enabled = selectedIds.size >= 2 && busyId == null,
+                enabled = selectedIds.isNotEmpty() && busyId == null,
                 colors = ButtonDefaults.buttonColors(containerColor = Violet),
                 modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)
             ) { Text(if (busyId == "group") "Создаём…" else "Создать группу") }
