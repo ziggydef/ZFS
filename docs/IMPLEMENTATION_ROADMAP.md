@@ -17,7 +17,7 @@ This is the delivery checklist for becamce. Items are not considered complete un
 - [x] SQL auth profile trigger and ordered backend migrations
 - [ ] Supabase project and Auth configuration + GitHub Actions secrets
 - [x] Email sign-up, sign-in and password-reset UI
-- [x] Phone OTP UI and Supabase test-number flow documented (no SMS provider needed for test numbers)
+- [ ] Phone sign-in UI deferred by product decision; backend endpoints retained for later
 - [x] Supabase Auth REST integration
 - [x] Android Keystore encrypted session persistence and refresh
 - [x] Sign-out UI
@@ -28,9 +28,11 @@ This is the delivery checklist for becamce. Items are not considered complete un
 
 ## Messaging
 - [x] Atomic direct/group chat creation RPC with initial membership
-- [ ] Direct-chat client integration
+- [x] Supabase PostgREST chat repository and atomic chat creation call
+- [x] Message send, edit, delete and read-position RPC integration in data layer
+- [ ] Direct-chat UI and contact discovery
 - [ ] Group membership management, roles and invites
-- [ ] Message send/receive with Realtime
+- [ ] Message send/receive with Realtime (initial repository currently polls; websocket transport pending)
 - [ ] Pagination, local cache, offline queue
 - [ ] Reply, edit, delete, delivery/read state
 - [ ] Image, video and document upload with private storage
