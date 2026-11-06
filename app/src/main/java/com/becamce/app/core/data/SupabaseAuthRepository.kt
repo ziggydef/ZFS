@@ -83,8 +83,13 @@ class SupabaseAuthRepository(context: Context) : AuthRepository {
             sessionStore.write(renewed)
             renewed.toAuthSession().also { mutableSession.value = it }
         } catch (error: Exception) {
-            sessionStore.clear()
-            mutableSession.value = null
+            // Keep the encrypted refresh token when the device is temporarily offline.
+            // Only discard credentials when Supabase explicitly rejects the refresh token.
+            val message = error.message.orEmpty()
+            if (message.contains("(400)") || message.contains("(401)") || message.contains("invalid_grant", ignoreCase = true)) {
+                sessionStore.clear()
+                mutableSession.value = null
+            }
             throw error
         }
     }
