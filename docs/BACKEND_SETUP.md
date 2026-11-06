@@ -3,7 +3,7 @@
 The backend is planned on Supabase. A project must be created by the project owner; no credentials are committed to this repository.
 
 1. Create a Supabase project.
-2. Apply migrations in order in the SQL Editor: `0001_initial_schema.sql`, then `0002_chat_creation_rpc.sql`, then `0003_auth_profile_trigger.sql`, then `0004_channel_rls_hardening.sql`, then `0005_message_mutation_rpcs.sql`.
+2. Apply migrations in order in the SQL Editor: `0001_initial_schema.sql`, then `0002_chat_creation_rpc.sql`, then `0003_auth_profile_trigger.sql`, then `0004_channel_rls_hardening.sql`, then `0005_message_mutation_rpcs.sql`, then `0006_mark_chat_read_rpc.sql`.
 3. Enable Email and Phone Auth providers in Authentication → Sign In / Providers. For free development, open the Phone provider settings and add a test phone number with a fixed OTP under “Test phone numbers”. Use that exact number and code in the app; Supabase verifies it without sending an SMS, so no Twilio account or SMS credits are needed. Keep test numbers private and use only numbers you control. For real users later, configure a supported SMS provider (such as Twilio) in the same Phone provider settings, then review OTP expiry, rate limits and CAPTCHA to control abuse and cost.
 4. Create private Storage buckets for profile media and chat attachments.
 5. Add Storage policies based on chat membership and channel subscription.
