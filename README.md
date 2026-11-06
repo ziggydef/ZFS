@@ -10,7 +10,7 @@ Native Android messenger project. Current repository milestone: initial UI found
 - Planned end-to-end encryption: established protocol/library, not custom cryptography
 
 ## Current state
-The current app is a visual foundation with demo chat rows and placeholder navigation. It is not yet a functioning network messenger. Authentication, backend messaging, media transfer, calls, channels, bot API, and E2EE remain to be implemented and tested.
+The app now includes email sign-up/sign-in/password-reset screens, Supabase Auth REST calls, and AES-GCM encrypted session storage backed by Android Keystore. The chat list still uses demo rows: realtime messaging, media transfer, calls, channels, bot API, and E2EE are not implemented yet. Authentication requires a Supabase project and the repository Actions secrets described in `docs/BACKEND_SETUP.md`.
 
 ## Build policy
 The GitHub Actions workflow is manual-only and requires the explicit boolean confirmation input. No builds are triggered by commits. The single final APK build should be started only after implementation and review are complete.
