@@ -40,11 +40,11 @@ private val AuthWhite = Color(0xFFF4F1FC)
 
 @Composable
 fun AuthScreen(repository: AuthRepository, recoveryToken: String? = null, onRecoveryComplete: () -> Unit = {}) {
-    var isSignUp by remember { mutableStateOf(false) }
+    var isSignUp by remember(recoveryToken) { mutableStateOf(false) }
     var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    var password by remember(recoveryToken) { mutableStateOf("") }
     var displayName by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
+    var confirmPassword by remember(recoveryToken) { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var notice by remember { mutableStateOf<String?>(null) }
