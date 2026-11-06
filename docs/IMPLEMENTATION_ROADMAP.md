@@ -34,7 +34,8 @@ Items are marked complete when implemented in source; live-backend verification 
 - [ ] Supabase Realtime WebSocket delivery
 - [ ] Pagination, local cache and offline queue
 - [x] Edit/delete own messages in the conversation UI
-- [ ] Reply and delivery/read state in UI
+- [x] Reply to messages in the conversation UI
+- [ ] Delivery/read state in UI
 - [ ] Group membership management, roles and invites
 - [ ] Image/video/document uploads and private storage
 - [ ] Voice recording and playback
