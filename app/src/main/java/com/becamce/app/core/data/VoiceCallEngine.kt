@@ -45,6 +45,7 @@ internal class VoiceCallEngine(
             override fun onIceConnectionChange(state: PeerConnection.IceConnectionState) {
                 onConnectionState(state.name)
             }
+            override fun onIceConnectionReceivingChange(receiving: Boolean) = Unit
             override fun onIceGatheringChange(state: PeerConnection.IceGatheringState) = Unit
             override fun onIceCandidate(candidate: IceCandidate) = onLocalIceCandidate(candidate)
             override fun onIceCandidatesRemoved(candidates: Array<IceCandidate>) = Unit
