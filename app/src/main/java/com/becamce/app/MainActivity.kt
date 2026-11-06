@@ -74,10 +74,14 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun extractRecoveryToken(intent: Intent?): String? {
-        val fragment = intent?.data?.fragment ?: return null
-        val params = Uri.parse("https://becamce.invalid/?$fragment")
-        if (params.getQueryParameter("type") != "recovery") return null
-        return params.getQueryParameter("access_token")?.takeIf { it.isNotBlank() }
+        val data = intent?.data ?: return null
+        val fragmentParams = data.fragment?.let { Uri.parse("https://becamce.invalid/?$it") }
+        val recoveryType = data.getQueryParameter("type")
+            ?: fragmentParams?.getQueryParameter("type")
+        if (recoveryType != "recovery") return null
+        return data.getQueryParameter("access_token")
+            ?.takeIf { it.isNotBlank() }
+            ?: fragmentParams?.getQueryParameter("access_token")?.takeIf { it.isNotBlank() }
     }
 }
 
