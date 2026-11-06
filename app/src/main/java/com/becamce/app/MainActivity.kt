@@ -69,8 +69,8 @@ class MainActivity : ComponentActivity() {
 private fun BecamceApp() {
     val context = LocalContext.current
     val authRepository = remember { SupabaseAuthRepository(context.applicationContext) }
-    val profileRepository = remember { SupabaseProfileRepository(context.applicationContext) }
-    val chatRepository = remember { SupabaseChatRepository(context.applicationContext) }
+    val profileRepository = remember { SupabaseProfileRepository(context.applicationContext, authRepository) }
+    val chatRepository = remember { SupabaseChatRepository(context.applicationContext, authRepository) }
     LaunchedEffect(authRepository) { authRepository.refreshSessionIfNeeded() }
     val session by authRepository.session.collectAsState(initial = null)
     MaterialTheme(colorScheme = darkColorScheme(background = Night, surface = Panel, primary = Violet, onBackground = White, onSurface = White)) {
