@@ -15,7 +15,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -30,7 +29,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.becamce.app.core.data.BackendConfig
 import com.becamce.app.core.domain.AuthRepository
 import com.becamce.app.core.domain.InputValidation
 import kotlinx.coroutines.launch
@@ -44,7 +42,11 @@ private val AuthWhite = Color(0xFFF4F1FC)
 @Composable
 fun AuthScreen(repository: AuthRepository) {
     var isSignUp by remember { mutableStateOf(false) }
+    var phoneMode by remember { mutableStateOf(false) }
+    var phoneCodeSent by remember { mutableStateOf(false) }
     var email by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("") }
+    var smsCode by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var displayName by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
@@ -66,47 +68,99 @@ fun AuthScreen(repository: AuthRepository) {
         ) {
             Text("becamce", color = AuthWhite, fontSize = 34.sp, fontWeight = FontWeight.Bold)
             Text(
-                if (isSignUp) "СОЗДАЙ СВОЙ АККАУНТ" else "РАДЫ ТЕБЯ ВИДЕТЬ",
+                when {
+                    phoneMode -> if (phoneCodeSent) "ПОДТВЕРДИ НОМЕР" else "ВХОД И РЕГИСТРАЦИЯ ПО SMS"
+                    isSignUp -> "СОЗДАЙ СВОЙ АККАУНТ"
+                    else -> "РАДЫ ТЕБЯ ВИДЕТЬ"
+                },
                 color = AuthMuted, fontSize = 10.sp, letterSpacing = 1.7.sp
             )
-            if (isSignUp) {
+
+            if (phoneMode) {
+                if (!phoneCodeSent) {
+                    OutlinedTextField(
+                        value = displayName, onValueChange = { displayName = it; error = null },
+                        label = { Text("Твоё имя") }, singleLine = true,
+                        modifier = Modifier.fillMaxWidth(), colors = fieldColors()
+                    )
+                }
                 OutlinedTextField(
-                    value = displayName, onValueChange = { displayName = it; error = null },
-                    label = { Text("Как тебя зовут") }, singleLine = true,
+                    value = phone, onValueChange = { phone = it; error = null },
+                    label = { Text("Номер телефона (+4915112345678)") }, singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                    modifier = Modifier.fillMaxWidth(), colors = fieldColors()
+                )
+                if (phoneCodeSent) {
+                    OutlinedTextField(
+                        value = smsCode,
+                        onValueChange = { smsCode = it.filter(Char::isDigit).take(6); error = null },
+                        label = { Text("Код из SMS") }, singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth(), colors = fieldColors()
+                    )
+                }
+            } else {
+                if (isSignUp) {
+                    OutlinedTextField(
+                        value = displayName, onValueChange = { displayName = it; error = null },
+                        label = { Text("Как тебя зовут") }, singleLine = true,
+                        modifier = Modifier.fillMaxWidth(), colors = fieldColors()
+                    )
+                }
+                OutlinedTextField(
+                    value = email, onValueChange = { email = it; error = null },
+                    label = { Text("Электронная почта") }, singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    modifier = Modifier.fillMaxWidth(), colors = fieldColors()
+                )
+                OutlinedTextField(
+                    value = password, onValueChange = { password = it; error = null },
+                    label = { Text("Пароль") }, singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     modifier = Modifier.fillMaxWidth(), colors = fieldColors()
                 )
             }
-            OutlinedTextField(
-                value = email, onValueChange = { email = it; error = null },
-                label = { Text("Электронная почта") }, singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                modifier = Modifier.fillMaxWidth(), colors = fieldColors()
-            )
-            OutlinedTextField(
-                value = password, onValueChange = { password = it; error = null },
-                label = { Text("Пароль") }, singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                modifier = Modifier.fillMaxWidth(), colors = fieldColors()
-            )
+
             error?.let { Text(it, color = Color(0xFFFF8B9A), fontSize = 12.sp) }
             notice?.let { Text(it, color = Color(0xFF9ADDBA), fontSize = 12.sp) }
+
             Button(
                 onClick = {
                     error = null
                     notice = null
-                    val emailError = InputValidation.email(email)
-                    val passwordError = InputValidation.password(password)
-                    val nameError = if (isSignUp) InputValidation.displayName(displayName) else null
-                    error = emailError ?: passwordError ?: nameError
-                    if (error == null) {
-                        scope.launch {
+                    if (phoneMode) {
+                        error = if (phoneCodeSent) {
+                            InputValidation.phone(phone) ?: InputValidation.smsCode(smsCode)
+                        } else {
+                            InputValidation.phone(phone) ?: InputValidation.displayName(displayName)
+                        }
+                        if (error == null) scope.launch {
                             busy = true
-                            val result = if (isSignUp) {
-                                repository.signUp(email, password, displayName)
+                            val result = if (phoneCodeSent) {
+                                repository.verifyPhoneCode(phone, smsCode).map { Unit }
                             } else {
-                                repository.signIn(email, password).map { Unit }
+                                repository.requestPhoneCode(phone, displayName)
                             }
+                            busy = false
+                            result.onSuccess {
+                                if (phoneCodeSent) {
+                                    notice = "Номер подтверждён. Добро пожаловать в becamce!"
+                                } else {
+                                    phoneCodeSent = true
+                                    notice = "Код отправлен по SMS. Введи его ниже."
+                                }
+                            }.onFailure { error = it.message ?: "Не удалось выполнить запрос" }
+                        }
+                    } else {
+                        val emailError = InputValidation.email(email)
+                        val passwordError = InputValidation.password(password)
+                        val nameError = if (isSignUp) InputValidation.displayName(displayName) else null
+                        error = emailError ?: passwordError ?: nameError
+                        if (error == null) scope.launch {
+                            busy = true
+                            val result = if (isSignUp) repository.signUp(email, password, displayName)
+                                else repository.signIn(email, password).map { Unit }
                             busy = false
                             result.onSuccess {
                                 if (isSignUp) {
@@ -124,9 +178,26 @@ fun AuthScreen(repository: AuthRepository) {
                 shape = RoundedCornerShape(16.dp)
             ) {
                 if (busy) CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp)
-                else Text(if (isSignUp) "Создать аккаунт" else "Войти", color = Color.White)
+                else Text(
+                    when {
+                        phoneMode && phoneCodeSent -> "Подтвердить код"
+                        phoneMode -> "Отправить SMS-код"
+                        isSignUp -> "Создать аккаунт"
+                        else -> "Войти"
+                    },
+                    color = Color.White
+                )
             }
-            if (!isSignUp) {
+
+            if (phoneMode && phoneCodeSent) {
+                TextButton(
+                    enabled = !busy,
+                    onClick = { phoneCodeSent = false; smsCode = ""; error = null; notice = null },
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                ) { Text("Изменить номер", color = AuthMuted) }
+            }
+
+            if (!phoneMode && !isSignUp) {
                 TextButton(
                     enabled = !busy,
                     onClick = {
@@ -143,19 +214,29 @@ fun AuthScreen(repository: AuthRepository) {
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 ) { Text("Забыли пароль?", color = AuthMuted) }
             }
+
             TextButton(
                 enabled = !busy,
                 onClick = {
-                    isSignUp = !isSignUp
+                    phoneMode = !phoneMode
+                    phoneCodeSent = false
+                    smsCode = ""
                     error = null
                     notice = null
                 },
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             ) {
-                Text(
-                    if (isSignUp) "Уже есть аккаунт? Войти" else "Нет аккаунта? Зарегистрироваться",
-                    color = AuthViolet
-                )
+                Text(if (phoneMode) "Продолжить по электронной почте" else "Войти или создать аккаунт по телефону", color = AuthViolet)
+            }
+
+            if (!phoneMode) {
+                TextButton(
+                    enabled = !busy,
+                    onClick = { isSignUp = !isSignUp; error = null; notice = null },
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                ) {
+                    Text(if (isSignUp) "Уже есть аккаунт? Войти" else "Нет аккаунта? Зарегистрироваться", color = AuthViolet)
+                }
             }
         }
     }
