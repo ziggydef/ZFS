@@ -26,6 +26,8 @@ Items are marked complete when implemented in source; live-backend verification 
 - [x] Atomic direct/group chat creation RPC
 - [x] Chat and message PostgREST repository
 - [x] Direct-chat creation from people search
+- [x] Reuse existing one-to-one conversations instead of duplicating them
+- [x] Create group conversations from selected people
 - [x] Basic chat list and conversation screen
 - [x] Send message and periodic message refresh
 - [x] Edit/delete/read RPCs in data layer
