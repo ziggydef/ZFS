@@ -2,6 +2,7 @@ package com.becamce.app
 
 import android.os.Bundle
 import android.content.Intent
+import java.io.ByteArrayOutputStream
 import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.ComponentActivity
@@ -333,9 +334,21 @@ private fun ConversationScreen(modifier: Modifier, chatId: String, repository: C
                     val name = context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
                         ?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
                         ?: "attachment"
-                    val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                        ?: throw IllegalStateException("Не удалось прочитать файл")
-                    require(bytes.isNotEmpty() && bytes.size <= 20 * 1024 * 1024) { "Максимальный размер файла — 20 МБ" }
+                    val bytes = ByteArrayOutputStream().use { output ->
+                        val input = context.contentResolver.openInputStream(uri)
+                            ?: throw IllegalStateException("Не удалось прочитать файл")
+                        input.use { stream ->
+                            val buffer = ByteArray(8192)
+                            while (true) {
+                                val count = stream.read(buffer)
+                                if (count < 0) break
+                                require(output.size() + count <= 20 * 1024 * 1024) { "Максимальный размер файла — 20 МБ" }
+                                output.write(buffer, 0, count)
+                            }
+                        }
+                        output.toByteArray()
+                    }
+                    require(bytes.isNotEmpty()) { "Файл пустой" }
                     repository.uploadAttachment(chatId, name, mime, bytes).onFailure { throw it }
                 }.onFailure { error = it.message ?: "Не удалось отправить файл" }
                 sending = false
