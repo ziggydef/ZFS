@@ -77,5 +77,7 @@ with check (
   )
 );
 
-grant select, insert, update on public.call_sessions to authenticated;
+grant select, insert on public.call_sessions to authenticated;
+revoke update on public.call_sessions from authenticated;
+grant update (status, answer_sdp) on public.call_sessions to authenticated;
 grant select, insert on public.call_ice_candidates to authenticated;

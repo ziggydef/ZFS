@@ -545,7 +545,7 @@ private fun ConversationScreen(
                                 )
                             ).background(if (ownMessage) Color(0xFF44336E) else Panel)
                                 .combinedClickable(
-                                    onClick = { selectedMessageId = msg.id },
+                                    onClick = { },
                                     onLongClick = { selectedMessageId = msg.id }
                                 )
                                 .pointerInput(msg.id) {

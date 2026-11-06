@@ -136,15 +136,22 @@ internal fun VoiceCallScreen(
         val id = callId ?: return@LaunchedEffect
         val rtc = engine ?: return@LaunchedEffect
         while (true) {
-            repository.getCall(id).onSuccess { call ->
+            val callResult = repository.getCall(id)
+            callResult.onFailure { error = it.message ?: "Потеряна связь с сервером звонков" }
+            val call = callResult.getOrNull()
+            if (call != null) {
                 if (call.status == "rejected" || call.status == "ended" || call.status == "missed") {
                     status = if (call.status == "rejected") "Вызов отклонён" else "Звонок завершён"
                 } else if (call.callerId == currentUserId && call.answerSdp != null && !answerApplied) {
-                    rtc.applyAnswer(call.answerSdp)
-                    answerApplied = true
-                    status = "Соединяем…"
+                    try {
+                        rtc.applyAnswer(call.answerSdp)
+                        answerApplied = true
+                        status = "Соединяем…"
+                    } catch (failure: Exception) {
+                        error = failure.message ?: "Не удалось применить ответ вызова"
+                    }
                 }
-            }.onFailure { error = it.message ?: "Потеряна связь с сервером звонков" }
+            }
 
             repository.remoteCandidates(id, seenRemoteCandidates).onSuccess { candidates ->
                 candidates.forEach { candidate ->
