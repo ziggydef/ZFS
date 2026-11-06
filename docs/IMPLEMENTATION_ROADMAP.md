@@ -47,6 +47,7 @@ Items are marked complete when implemented in source; live-backend verification 
 
 ## Privacy and safety
 - [ ] Audited secret-chat protocol and device verification
+- [x] Server-side block on creating unencrypted secret-chat records
 - [ ] Encrypted attachment format
 - [ ] Server-side expiry/deletion worker
 - [ ] Block/report controls and rate limits
