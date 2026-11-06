@@ -3,7 +3,7 @@
 The backend uses Supabase. The project owner must create the Supabase project; credentials are not committed to this repository.
 
 1. Create a Supabase project.
-2. Apply every SQL migration in order: `0001_initial_schema.sql` through `0012_private_chat_attachments.sql`.
+2. Apply every SQL migration in order: `0001_initial_schema.sql` through `0013_disable_unimplemented_secret_chats.sql`.
 3. Enable Email Auth in Authentication → Sign In / Providers. Add `becamce://auth/callback` to Authentication → URL Configuration → Redirect URLs so password-reset links return to the app. Phone sign-in is intentionally hidden in the current app version; no SMS provider is needed for the current email-only milestone.
 4. Add the project URL and publishable/anon key as GitHub Actions repository secrets named `SUPABASE_URL` and `SUPABASE_ANON_KEY`.
 5. Never put a service-role key in the Android app, source control, Actions secrets used by the client build, screenshots, or chat.
@@ -15,7 +15,7 @@ The app reads `SUPABASE_URL` and `SUPABASE_ANON_KEY` at build time. The GitHub A
 
 ## Identity and usernames
 
-The app supports public usernames of 4–24 lowercase ASCII letters, digits, and underscores. Usernames are case-insensitive and unique. Users can set or change a username in Profile; the Contacts tab searches profiles by username or display name. Apply migrations `0007_username_system.sql`, `0008_reuse_direct_chats.sql`, and `0009_direct_chat_race_guard.sql` after the preceding migrations. Migration 0008 reuses an existing one-to-one conversation; migration 0009 serializes simultaneous creation requests for the same pair to prevent race-condition duplicates. Migration 0010 restricts execution of membership-check and trigger-only SECURITY DEFINER helpers. Migration 0011 adds server-authorized add/remove operations for group members; the Android management UI is still pending. Migration 0012 creates a private `chat-attachments` Storage bucket, member-only read policies, and message filename metadata.
+The app supports public usernames of 4–24 lowercase ASCII letters, digits, and underscores. Usernames are case-insensitive and unique. Users can set or change a username in Profile; the Contacts tab searches profiles by username or display name. Apply migrations `0007_username_system.sql`, `0008_reuse_direct_chats.sql`, and `0009_direct_chat_race_guard.sql` after the preceding migrations. Migration 0008 reuses an existing one-to-one conversation; migration 0009 serializes simultaneous creation requests for the same pair to prevent race-condition duplicates. Migration 0010 restricts execution of membership-check and trigger-only SECURITY DEFINER helpers. Migration 0011 adds server-authorized add/remove operations for group members; the Android management UI is still pending. Migration 0012 creates a private `chat-attachments` Storage bucket, member-only read policies, and message filename metadata. Migration 0013 rejects secret-chat records until end-to-end encryption is implemented.
 
 ## Current implementation notes
 
