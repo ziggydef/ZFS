@@ -89,7 +89,14 @@ class SupabaseAuthRepository(context: Context) : AuthRepository {
             // Keep the encrypted refresh token when the device is temporarily offline.
             // Only discard credentials when Supabase explicitly rejects the refresh token.
             val message = error.message.orEmpty()
-            if (message.contains("(400)") || message.contains("(401)") || message.contains("invalid_grant", ignoreCase = true)) {
+            val refreshRejected =
+                message.contains("(400)") ||
+                message.contains("(401)") ||
+                message.contains("invalid_grant", ignoreCase = true) ||
+                message.contains("invalid refresh token", ignoreCase = true) ||
+                message.contains("refresh token not found", ignoreCase = true) ||
+                message.contains("already used", ignoreCase = true)
+            if (refreshRejected) {
                 sessionStore.clear()
                 mutableSession.value = null
             }
