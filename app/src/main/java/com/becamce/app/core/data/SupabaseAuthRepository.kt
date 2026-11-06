@@ -116,7 +116,35 @@ class SupabaseAuthRepository(context: Context) : AuthRepository {
     }
 
     override suspend fun requestPasswordReset(email: String): Result<Unit> = requestResult {
-        execute("/auth/v1/recover", JSONObject().put("email", email.trim()), bearer = null)
+        execute("/auth/v1/recover?redirect_to=becamce%3A%2F%2Fauth%2Fcallback", JSONObject().put("email", email.trim()), bearer = null)
+        Unit
+    }
+
+    override suspend fun completePasswordRecovery(accessToken: String, newPassword: String): Result<Unit> = requestResult {
+        require(accessToken.isNotBlank()) { "Ссылка восстановления недействительна или устарела" }
+        require(newPassword.length >= 10 && newPassword.any(Char::isLetter) && newPassword.any(Char::isDigit)) {
+            "Пароль должен содержать не менее 10 символов, буквы и цифры"
+        }
+        withContext(Dispatchers.IO) {
+            check(config.isConfigured) { "Supabase пока не подключён." }
+            val request = Request.Builder()
+                .url(config.projectUrl.trimEnd('/') + "/auth/v1/user")
+                .header("apikey", config.publishableKey)
+                .header("Authorization", "Bearer $accessToken")
+                .header("Content-Type", "application/json")
+                .put(JSONObject().put("password", newPassword).toString().toRequestBody(JSON_MEDIA_TYPE))
+                .build()
+            client.newCall(request).execute().use { response ->
+                val text = response.body?.string().orEmpty()
+                if (!response.isSuccessful) {
+                    val message = runCatching {
+                        val json = JSONObject(text)
+                        json.optString("msg").ifBlank { json.optString("message").ifBlank { json.optString("error_description") } }
+                    }.getOrNull().orEmpty()
+                    throw IOException(message.ifBlank { "Не удалось изменить пароль (" + response.code + ")" })
+                }
+            }
+        }
         Unit
     }
 
