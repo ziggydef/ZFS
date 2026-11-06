@@ -17,4 +17,6 @@ interface ChatRepository {
     suspend fun editMessage(messageId: String, newBody: String): Result<Unit>
     suspend fun deleteMessage(messageId: String): Result<Unit>
     suspend fun markRead(chatId: String): Result<Unit>
+    suspend fun addGroupMember(chatId: String, userId: String): Result<Unit>
+    suspend fun removeGroupMember(chatId: String, userId: String): Result<Unit>
 }
