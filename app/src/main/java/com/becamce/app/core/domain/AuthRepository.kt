@@ -1,6 +1,5 @@
 package com.becamce.app.core.domain
 
-import com.becamce.app.core.model.UserProfile
 import kotlinx.coroutines.flow.Flow
 
 data class AuthSession(
@@ -17,10 +16,4 @@ interface AuthRepository {
     suspend fun refreshSessionIfNeeded(): Result<AuthSession?>
     suspend fun signOut(): Result<Unit>
     suspend fun requestPasswordReset(email: String): Result<Unit>
-}
-
-interface ProfileRepository {
-    suspend fun getMyProfile(): Result<UserProfile>
-    suspend fun updateMyProfile(displayName: String, username: String?, bio: String): Result<UserProfile>
-    suspend fun isUsernameAvailable(username: String): Result<Boolean>
 }
