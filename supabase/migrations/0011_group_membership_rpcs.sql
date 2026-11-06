@@ -19,7 +19,7 @@ begin
     raise exception 'Authentication required';
   end if;
 
-  if p_user_id is null or p_action not in ('add', 'remove') then
+  if p_user_id is null or p_action is null or p_action not in ('add', 'remove') then
     raise exception 'Invalid group member operation';
   end if;
 
