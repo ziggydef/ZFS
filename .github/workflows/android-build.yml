@@ -31,6 +31,8 @@ jobs:
         run: yes | sdkmanager --licenses || true
       - name: Install Android SDK packages
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+      - name: Run unit tests
+        run: gradle --no-daemon :app:testDebugUnitTest
       - name: Assemble final debug APK
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
