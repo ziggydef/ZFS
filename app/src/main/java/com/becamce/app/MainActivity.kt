@@ -146,6 +146,7 @@ private fun ChatsScreen(
     LaunchedEffect(repository) {
         repository.observeChats()
             .retryWhen { cause, attempt ->
+                if (cause is kotlinx.coroutines.CancellationException) return@retryWhen false
                 error = cause.message ?: "Связь потеряна. Повторяем подключение…"
                 loading = false
                 kotlinx.coroutines.delay((1_000L * (attempt + 1L)).coerceAtMost(30_000L))
