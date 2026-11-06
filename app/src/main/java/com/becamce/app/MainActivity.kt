@@ -136,7 +136,10 @@ private fun MessengerShell(
         ) { padding ->
             when {
                 openedChatId != null -> ConversationScreen(Modifier.padding(padding), openedChatId!!, chatRepository, currentSession?.userId.orEmpty()) { openedChatId = null }
-                selectedTab == "Чаты" -> ChatsScreen(Modifier.padding(padding), chatRepository, search, { search = it }) { openedChatId = it }
+                selectedTab == "Чаты" -> ChatsScreen(
+                    Modifier.padding(padding), chatRepository, profileRepository,
+                    currentSession?.userId.orEmpty(), search, { search = it }
+                ) { openedChatId = it }
                 selectedTab == "Контакты" -> PeopleScreen(Modifier.padding(padding), profileRepository, chatRepository) { chatId ->
                     openedChatId = chatId
                     selectedTab = "Чаты"
@@ -152,14 +155,17 @@ private fun MessengerShell(
 private fun ChatsScreen(
     modifier: Modifier,
     repository: ChatRepository,
+    profiles: ProfileRepository,
+    currentUserId: String,
     search: String,
     onSearchChange: (String) -> Unit,
     onOpen: (String) -> Unit
 ) {
     var chats by remember { mutableStateOf<List<com.becamce.app.core.model.ChatSummary>>(emptyList()) }
+    var profilesById by remember { mutableStateOf<Map<String, UserProfile>>(emptyMap()) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(repository) {
+    LaunchedEffect(repository, profiles, currentUserId) {
         repository.observeChats()
             .retryWhen { cause, attempt ->
                 if (cause is kotlinx.coroutines.CancellationException) return@retryWhen false
@@ -169,9 +175,31 @@ private fun ChatsScreen(
                 true
             }
             .catch { error = it.message ?: "Не удалось загрузить чаты"; loading = false }
-            .collect { chats = it; loading = false; error = null }
+            .collect { updatedChats ->
+                chats = updatedChats
+                if (currentUserId.isNotBlank()) {
+                    val missingIds = updatedChats.flatMap { it.members }
+                        .filter { it != currentUserId && it !in profilesById }
+                        .distinct()
+                    if (missingIds.isNotEmpty()) {
+                        profiles.getProfilesByIds(missingIds).onSuccess { found ->
+                            profilesById = profilesById + found.associateBy { it.id }
+                        }
+                    }
+                }
+                loading = false
+                error = null
+            }
     }
-    val filtered = chats.filter { (it.title ?: "Личный чат").contains(search, true) || (it.lastMessage?.body ?: "").contains(search, true) }
+    fun displayTitle(chat: com.becamce.app.core.model.ChatSummary): String {
+        if (!chat.title.isNullOrBlank()) return chat.title
+        if (chat.kind == ChatKind.GROUP) return "Групповой чат"
+        val peer = chat.members.firstOrNull { it != currentUserId }?.let { profilesById[it] }
+        return peer?.displayName?.ifBlank { "Личный чат" } ?: "Личный чат"
+    }
+    val filtered = chats.filter {
+        displayTitle(it).contains(search, true) || (it.lastMessage?.body ?: "").contains(search, true)
+    }
     Column(modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF171322), Night, Night))).padding(horizontal = 20.dp)) {
         Spacer(Modifier.height(22.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -193,7 +221,8 @@ private fun ChatsScreen(
                 error?.let { Text(it, color = Color(0xFFFF8B9A), fontSize = 11.sp) }
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(bottom = 90.dp)) {
                     items(filtered, key = { it.id }) { chat ->
-                        ChatRow(chat.title ?: if (chat.kind == ChatKind.GROUP) "Групповой чат" else "Личный чат", chat.lastMessage?.body ?: chat.lastMessage?.mediaFileName?.let { "📎 $it" } ?: "Начните общение", chat.id.take(2).uppercase()) { onOpen(chat.id) }
+                        val title = displayTitle(chat)
+                        ChatRow(title, chat.lastMessage?.body ?: chat.lastMessage?.mediaFileName?.let { "📎 $it" } ?: "Начните общение", title.take(2).uppercase()) { onOpen(chat.id) }
                     }
                 }
             }
