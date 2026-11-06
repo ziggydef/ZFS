@@ -16,7 +16,7 @@ $$;
 
 drop trigger if exists reject_unimplemented_secret_chats on public.chats;
 create trigger reject_unimplemented_secret_chats
-before insert or update of kind on public.chats
+before insert or update on public.chats
 for each row execute function public.reject_unimplemented_secret_chats();
 
 revoke all on function public.reject_unimplemented_secret_chats() from public;
