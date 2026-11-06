@@ -24,7 +24,7 @@ begin
 
   select count(distinct member_id)
     into v_member_count
-    from unnest(p_member_ids) as member_id
+    from unnest(p_member_ids) as members(member_id)
    where member_id <> auth.uid();
 
   if v_member_count <> cardinality(p_member_ids) then
