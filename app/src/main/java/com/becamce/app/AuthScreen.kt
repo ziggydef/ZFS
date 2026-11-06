@@ -94,8 +94,9 @@ fun AuthScreen(repository: AuthRepository) {
             Button(
                 onClick = {
                     error = InputValidation.email(email)
-                        ?: InputValidation.password(password)
-                        ?: if (isSignUp) InputValidation.displayName(displayName) else null
+                        ?: if (isSignUp) InputValidation.password(password)
+                            ?: InputValidation.displayName(displayName)
+                        else if (password.isBlank()) "Введите пароль" else null
                     notice = null
                     if (error == null) scope.launch {
                         busy = true
