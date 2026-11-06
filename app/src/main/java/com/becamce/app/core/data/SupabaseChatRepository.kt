@@ -82,7 +82,8 @@ class SupabaseChatRepository(context: Context) : ChatRepository {
         chatId: String,
         fileName: String,
         mimeType: String,
-        bytes: ByteArray
+        bytes: ByteArray,
+        replyTo: String?
     ): Result<Message> = result {
         requireValidUuid(chatId)
         require(bytes.isNotEmpty() && bytes.size <= MAX_ATTACHMENT_BYTES) { "Файл пустой или превышает 20 МБ" }
@@ -116,6 +117,7 @@ class SupabaseChatRepository(context: Context) : ChatRepository {
             .put("media_path", objectPath)
             .put("media_mime", mimeType)
             .put("media_file_name", fileName.take(180))
+            .put("reply_to", replyTo ?: JSONObject.NULL)
         val raw = request(
             "messages?select=id,chat_id,sender_id,body,media_path,media_mime,media_file_name,reply_to,edited_at,created_at",
             "POST", payload, prefer = "return=representation"
