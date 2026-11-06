@@ -59,14 +59,30 @@ private val Muted = Color(0xFF9291A4)
 private val White = Color(0xFFF4F1FC)
 
 class MainActivity : ComponentActivity() {
+    private var recoveryToken by mutableStateOf<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { BecamceApp() }
+        recoveryToken = extractRecoveryToken(intent)
+        setContent { BecamceApp(recoveryToken) { recoveryToken = null } }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        recoveryToken = extractRecoveryToken(intent)
+    }
+
+    private fun extractRecoveryToken(intent: Intent?): String? {
+        val fragment = intent?.data?.fragment ?: return null
+        val params = Uri.parse("https://becamce.invalid/?$fragment")
+        if (params.getQueryParameter("type") != "recovery") return null
+        return params.getQueryParameter("access_token")?.takeIf { it.isNotBlank() }
     }
 }
 
 @Composable
-private fun BecamceApp() {
+private fun BecamceApp(recoveryToken: String?, onRecoveryComplete: () -> Unit) {
     val context = LocalContext.current
     val authRepository = remember { SupabaseAuthRepository(context.applicationContext) }
     val profileRepository = remember { SupabaseProfileRepository(context.applicationContext, authRepository) }
@@ -74,7 +90,7 @@ private fun BecamceApp() {
     LaunchedEffect(authRepository) { authRepository.refreshSessionIfNeeded() }
     val session by authRepository.session.collectAsState(initial = null)
     MaterialTheme(colorScheme = darkColorScheme(background = Night, surface = Panel, primary = Violet, onBackground = White, onSurface = White)) {
-        if (session == null) AuthScreen(authRepository)
+        if (recoveryToken != null || session == null) AuthScreen(authRepository, recoveryToken, onRecoveryComplete)
         else MessengerShell(authRepository, profileRepository, chatRepository)
     }
 }
