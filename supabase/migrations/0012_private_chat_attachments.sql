@@ -54,6 +54,12 @@ using (
 alter table public.messages
   add column if not exists media_file_name text;
 
+update public.messages
+set media_file_name = coalesce(nullif(media_file_name, ''), 'attachment'),
+    media_mime = coalesce(nullif(media_mime, ''), 'application/octet-stream')
+where media_path is not null
+  and (media_file_name is null or media_file_name = '' or media_mime is null or media_mime = '');
+
 alter table public.messages
   drop constraint if exists message_media_metadata_check;
 
