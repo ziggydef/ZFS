@@ -53,6 +53,7 @@ class SupabaseChatRepository(context: Context) : ChatRepository {
     override suspend fun createChat(kind: ChatKind, title: String?, memberIds: List<String>): Result<String> =
         result {
             require(kind != ChatKind.SECRET) { "Секретные чаты пока не поддерживаются" }
+            require(memberIds.isNotEmpty()) { "Для личного или группового чата нужен хотя бы один собеседник" }
             val payload = JSONObject()
                 .put("p_kind", kind.name.lowercase())
                 .put("p_title", title ?: JSONObject.NULL)
@@ -124,6 +125,7 @@ class SupabaseChatRepository(context: Context) : ChatRepository {
     }
 
     private suspend fun fetchMessages(chatId: String): List<Message> {
+        require(chatId.matches(Regex("^[0-9a-fA-F-]{36}$"))) { "Некорректный идентификатор чата" }
         val raw = request(
             "messages?select=id,chat_id,sender_id,body,reply_to,edited_at,expires_at,created_at&chat_id=eq.$chatId&order=created_at.asc&limit=100",
             "GET"
