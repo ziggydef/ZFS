@@ -170,12 +170,15 @@ private fun ChatsScreen(
         Text("СООБЩЕНИЯ", color = Muted, fontSize = 10.sp, letterSpacing = 1.8.sp)
         Spacer(Modifier.height(10.dp))
         when {
-            loading -> Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = Violet) }
-            error != null -> Text(error!!, color = Color(0xFFFF8B9A))
+            loading && chats.isEmpty() -> Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = Violet) }
+            chats.isEmpty() && error != null -> Text(error!!, color = Color(0xFFFF8B9A))
             filtered.isEmpty() -> EmptyState("Пока нет чатов", "Найди человека во вкладке «Контакты», чтобы начать общение.")
-            else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(bottom = 90.dp)) {
-                items(filtered, key = { it.id }) { chat ->
-                    ChatRow(chat.title ?: if (chat.kind == ChatKind.GROUP) "Групповой чат" else "Личный чат", chat.lastMessage?.body ?: chat.lastMessage?.mediaFileName?.let { "📎 $it" } ?: "Начните общение", chat.id.take(2).uppercase()) { onOpen(chat.id) }
+            else -> {
+                error?.let { Text(it, color = Color(0xFFFF8B9A), fontSize = 11.sp) }
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(bottom = 90.dp)) {
+                    items(filtered, key = { it.id }) { chat ->
+                        ChatRow(chat.title ?: if (chat.kind == ChatKind.GROUP) "Групповой чат" else "Личный чат", chat.lastMessage?.body ?: chat.lastMessage?.mediaFileName?.let { "📎 $it" } ?: "Начните общение", chat.id.take(2).uppercase()) { onOpen(chat.id) }
+                    }
                 }
             }
         }
