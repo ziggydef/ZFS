@@ -72,11 +72,85 @@ class SupabaseChatRepository(context: Context) : ChatRepository {
                 .put("body", body.trim())
             if (!replyTo.isNullOrBlank()) payload.put("reply_to", replyTo)
             val response = request(
-                "messages?select=id,chat_id,sender_id,body,reply_to,edited_at,created_at",
+                "messages?select=id,chat_id,sender_id,body,media_path,media_mime,media_file_name,reply_to,edited_at,created_at",
                 "POST", payload, prefer = "return=representation"
             )
             parseMessage(JSONArray(response).getJSONObject(0))
         }
+
+    override suspend fun uploadAttachment(
+        chatId: String,
+        fileName: String,
+        mimeType: String,
+        bytes: ByteArray
+    ): Result<Message> = result {
+        requireValidUuid(chatId)
+        require(bytes.isNotEmpty() && bytes.size <= MAX_ATTACHMENT_BYTES) { "Файл пустой или превышает 20 МБ" }
+        require(fileName.isNotBlank() && fileName.length <= 180) { "Некорректное имя файла" }
+        require(mimeType in ALLOWED_ATTACHMENT_TYPES) { "Этот тип файла не поддерживается" }
+        val userId = requireUserId()
+        val safeName = fileName.replace(Regex("[^A-Za-z0-9._-]"), "_").take(120).ifBlank { "attachment" }
+        val objectPath = "$userId/$chatId/${java.util.UUID.randomUUID()}-$safeName"
+        val encodedPath = objectPath.split("/").joinToString("/") {
+            java.net.URLEncoder.encode(it, "UTF-8").replace("+", "%20")
+        }
+        withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val session = sessions.read() ?: throw IOException("Войдите в аккаунт, чтобы продолжить.")
+            val url = config.projectUrl.trimEnd('/') + "/storage/v1/object/chat-attachments/" + encodedPath
+            val body = bytes.toRequestBody(mimeType.toMediaType())
+            val request = Request.Builder().url(url)
+                .header("apikey", config.publishableKey)
+                .header("Authorization", "Bearer " + session.accessToken)
+                .header("x-upsert", "false")
+                .post(body).build()
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) {
+                    val detail = response.body?.string().orEmpty()
+                    throw IOException(detail.ifBlank { "Не удалось загрузить файл (${response.code})" })
+                }
+            }
+        }
+        val payload = JSONObject()
+            .put("chat_id", chatId)
+            .put("sender_id", userId)
+            .put("media_path", objectPath)
+            .put("media_mime", mimeType)
+            .put("media_file_name", fileName.take(180))
+        val raw = request(
+            "messages?select=id,chat_id,sender_id,body,media_path,media_mime,media_file_name,reply_to,edited_at,created_at",
+            "POST", payload, prefer = "return=representation"
+        )
+        parseMessage(JSONArray(raw).getJSONObject(0))
+    }
+
+    override suspend fun getAttachmentUrl(storagePath: String): Result<String> = result {
+        require(storagePath.matches(Regex("^[0-9a-fA-F-]{36}/[0-9a-fA-F-]{36}/[A-Za-z0-9._-]{1,180}$"))) {
+            "Некорректный путь вложения"
+        }
+        val encodedPath = storagePath.split("/").joinToString("/") {
+            java.net.URLEncoder.encode(it, "UTF-8").replace("+", "%20")
+        }
+        withContext(kotlinx.coroutines.Dispatchers.IO) {
+            check(config.isConfigured) { "Supabase пока не подключён." }
+            val session = sessions.read() ?: throw IOException("Войдите в аккаунт, чтобы продолжить.")
+            val url = config.projectUrl.trimEnd('/') + "/storage/v1/object/sign/chat-attachments/" +
+                encodedPath
+            val payload = JSONObject().put("expiresIn", 300)
+                .toString().toRequestBody(JSON)
+            val request = Request.Builder().url(url)
+                .header("apikey", config.publishableKey)
+                .header("Authorization", "Bearer " + session.accessToken)
+                .post(payload).build()
+            client.newCall(request).execute().use { response ->
+                val text = response.body?.string().orEmpty()
+                if (!response.isSuccessful) throw IOException(text.ifBlank { "Не удалось открыть вложение" })
+                val signed = JSONObject(text).optString("signedURL")
+                require(signed.isNotBlank()) { "Сервер не вернул ссылку на файл" }
+                if (signed.startsWith("http://") || signed.startsWith("https://")) signed
+                else config.projectUrl.trimEnd('/') + "/storage/v1" + signed
+            }
+        }
+    }
 
     override suspend fun editMessage(messageId: String, newBody: String): Result<Unit> = result {
         require(newBody.isNotBlank() && newBody.length <= 8000) { "Сообщение должно содержать от 1 до 8000 символов" }
@@ -125,7 +199,7 @@ class SupabaseChatRepository(context: Context) : ChatRepository {
     private suspend fun fetchChats(): List<ChatSummary> {
         val userId = requireUserId()
         val raw = request(
-            "chats?select=id,kind,title,updated_at,chat_members!inner(user_id),messages(id,chat_id,sender_id,body,reply_to,edited_at,created_at)&chat_members.user_id=eq.$userId&messages.order=created_at.desc&messages.limit=1&order=updated_at.desc",
+            "chats?select=id,kind,title,updated_at,chat_members!inner(user_id),messages(id,chat_id,sender_id,body,media_path,media_mime,media_file_name,reply_to,edited_at,created_at)&chat_members.user_id=eq.$userId&messages.order=created_at.desc&messages.limit=1&order=updated_at.desc",
             "GET"
         )
         val rows = JSONArray(raw)
@@ -155,7 +229,7 @@ class SupabaseChatRepository(context: Context) : ChatRepository {
     private suspend fun fetchMessages(chatId: String): List<Message> {
         require(chatId.matches(Regex("^[0-9a-fA-F-]{36}$"))) { "Некорректный идентификатор чата" }
         val raw = request(
-            "messages?select=id,chat_id,sender_id,body,reply_to,edited_at,expires_at,created_at&chat_id=eq.$chatId&order=created_at.asc&limit=100",
+            "messages?select=id,chat_id,sender_id,body,media_path,media_mime,media_file_name,reply_to,edited_at,expires_at,created_at&chat_id=eq.$chatId&order=created_at.asc&limit=100",
             "GET"
         )
         val rows = JSONArray(raw)
@@ -167,6 +241,9 @@ class SupabaseChatRepository(context: Context) : ChatRepository {
         chatId = row.getString("chat_id"),
         senderId = row.getString("sender_id"),
         body = row.optString("body").takeIf { it.isNotBlank() && it != "null" },
+        mediaPath = row.optString("media_path").takeIf { it.isNotBlank() && it != "null" },
+        mediaMime = row.optString("media_mime").takeIf { it.isNotBlank() && it != "null" },
+        mediaFileName = row.optString("media_file_name").takeIf { it.isNotBlank() && it != "null" },
         replyTo = row.optString("reply_to").takeIf { it.isNotBlank() && it != "null" },
         editedAt = row.optString("edited_at").takeIf { it.isNotBlank() && it != "null" }?.let(::instant),
         expiresAt = row.optString("expires_at").takeIf { it.isNotBlank() && it != "null" }?.let(::instant),
@@ -216,6 +293,14 @@ class SupabaseChatRepository(context: Context) : ChatRepository {
     private companion object {
         const val CHAT_REFRESH_MS = 8000L
         const val MESSAGE_REFRESH_MS = 2500L
+        const val MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024
+        val ALLOWED_ATTACHMENT_TYPES = setOf(
+            "image/jpeg", "image/png", "image/webp", "image/gif",
+            "application/pdf", "text/plain", "application/zip",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        )
         val JSON = "application/json; charset=utf-8".toMediaType()
     }
 }
