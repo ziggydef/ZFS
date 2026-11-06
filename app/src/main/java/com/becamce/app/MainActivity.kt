@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -19,6 +20,7 @@ import androidx.compose.material.icons.rounded.ChatBubbleOutline
 import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Send
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -79,6 +81,7 @@ private fun MessengerShell(
     var selectedTab by remember { mutableStateOf("Чаты") }
     var search by remember { mutableStateOf("") }
     var openedChatId by remember { mutableStateOf<String?>(null) }
+    val currentSession by authRepository.session.collectAsState(initial = null)
     MaterialTheme(colorScheme = darkColorScheme(background = Night, surface = Panel, primary = Violet, onBackground = White, onSurface = White)) {
         Scaffold(
             containerColor = Night,
@@ -109,7 +112,7 @@ private fun MessengerShell(
             }
         ) { padding ->
             when {
-                openedChatId != null -> ConversationScreen(Modifier.padding(padding), openedChatId!!, chatRepository) { openedChatId = null }
+                openedChatId != null -> ConversationScreen(Modifier.padding(padding), openedChatId!!, chatRepository, currentSession?.userId.orEmpty()) { openedChatId = null }
                 selectedTab == "Чаты" -> ChatsScreen(Modifier.padding(padding), chatRepository, search, { search = it }) { openedChatId = it }
                 selectedTab == "Контакты" -> PeopleScreen(Modifier.padding(padding), profileRepository, chatRepository) { chatId ->
                     openedChatId = chatId
@@ -265,22 +268,39 @@ private fun PeopleScreen(
 }
 
 @Composable
-private fun ConversationScreen(modifier: Modifier, chatId: String, repository: ChatRepository, onBack: () -> Unit) {
+private fun ConversationScreen(modifier: Modifier, chatId: String, repository: ChatRepository, currentUserId: String, onBack: () -> Unit) {
     var messages by remember { mutableStateOf<List<com.becamce.app.core.model.Message>>(emptyList()) }
     var draft by remember { mutableStateOf("") }
     var sending by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    val listState = rememberLazyListState()
     LaunchedEffect(chatId) { repository.markRead(chatId); repository.observeMessages(chatId).catch { error = it.message ?: "Не удалось загрузить сообщения" }.collect { messages = it } }
+    LaunchedEffect(messages.size) { if (messages.isNotEmpty()) listState.animateScrollToItem(messages.lastIndex) }
     Column(modifier.fillMaxSize().background(Night).padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onBack) { Text("‹ Назад", color = Violet) }
             Text("Диалог", color = White, fontSize = 21.sp, fontWeight = FontWeight.Bold)
         }
-        LazyColumn(Modifier.weight(1f).fillMaxWidth(), reverseLayout = false, contentPadding = PaddingValues(vertical = 12.dp)) {
+        LazyColumn(state = listState, modifier = Modifier.weight(1f).fillMaxWidth(), reverseLayout = false, contentPadding = PaddingValues(vertical = 12.dp)) {
             items(messages, key = { it.id }) { msg ->
-                Box(Modifier.fillMaxWidth().padding(vertical = 4.dp), contentAlignment = Alignment.CenterEnd) {
-                    Text(msg.body.orEmpty(), color = White, modifier = Modifier.widthIn(max = 300.dp).clip(RoundedCornerShape(16.dp)).background(Panel).padding(12.dp))
+                val ownMessage = msg.senderId == currentUserId
+                Row(
+                    Modifier.fillMaxWidth().padding(vertical = 3.dp),
+                    horizontalArrangement = if (ownMessage) Arrangement.End else Arrangement.Start
+                ) {
+                    Column(
+                        Modifier.widthIn(max = 300.dp).clip(
+                            RoundedCornerShape(
+                                topStart = 18.dp, topEnd = 18.dp,
+                                bottomEnd = if (ownMessage) 5.dp else 18.dp,
+                                bottomStart = if (ownMessage) 18.dp else 5.dp
+                            )
+                        ).background(if (ownMessage) Color(0xFF44336E) else Panel).padding(horizontal = 13.dp, vertical = 10.dp)
+                    ) {
+                        Text(msg.body.orEmpty(), color = White, fontSize = 14.sp)
+                        if (msg.editedAt != null) Text("изменено", color = White.copy(alpha = .58f), fontSize = 9.sp)
+                    }
                 }
             }
         }
@@ -299,7 +319,7 @@ private fun ConversationScreen(modifier: Modifier, chatId: String, repository: C
                     repository.sendMessage(chatId, draft).onSuccess { draft = "" }.onFailure { error = it.message ?: "Не удалось отправить" }
                     sending = false
                 }
-            }) { Icon(Icons.Rounded.Add, contentDescription = "Отправить", tint = Violet) }
+            }) { Icon(Icons.Rounded.Send, contentDescription = "Отправить", tint = Violet) }
         }
     }
 }
