@@ -41,6 +41,7 @@ import com.becamce.app.core.domain.ProfileRepository
 import com.becamce.app.core.model.ChatKind
 import com.becamce.app.core.model.UserProfile
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.catch
 
 private val Night = Color(0xFF09090E)
 private val Panel = Color(0xFF171722)
@@ -136,7 +137,7 @@ private fun ChatsScreen(
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(repository) {
-        repository.observeChats().collect { chats = it; loading = false; error = null }
+        repository.observeChats().catch { error = it.message ?: "Не удалось загрузить чаты"; loading = false }.collect { chats = it; loading = false; error = null }
     }
     val filtered = chats.filter { (it.title ?: "Личный чат").contains(search, true) || (it.lastMessage?.body ?: "").contains(search, true) }
     Column(modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF171322), Night, Night))).padding(horizontal = 20.dp)) {
@@ -273,7 +274,7 @@ private fun ConversationScreen(modifier: Modifier, chatId: String, repository: C
     var sending by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
-    LaunchedEffect(chatId) { repository.observeMessages(chatId).collect { messages = it } }
+    LaunchedEffect(chatId) { repository.observeMessages(chatId).catch { error = it.message ?: "Не удалось загрузить сообщения" }.collect { messages = it } }
     Column(modifier.fillMaxSize().background(Night).padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onBack) { Text("‹ Назад", color = Violet) }
