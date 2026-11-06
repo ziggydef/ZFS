@@ -349,7 +349,8 @@ private fun ConversationScreen(modifier: Modifier, chatId: String, repository: C
                         output.toByteArray()
                     }
                     require(bytes.isNotEmpty()) { "Файл пустой" }
-                    repository.uploadAttachment(chatId, name, mime, bytes).onFailure { throw it }
+                    repository.uploadAttachment(chatId, name, mime, bytes, replyingTo?.id).onFailure { throw it }
+                    replyingTo = null
                 }.onFailure { error = it.message ?: "Не удалось отправить файл" }
                 sending = false
             }
