@@ -236,11 +236,11 @@ class SupabaseChatRepository(context: Context, private val authRepository: AuthR
     private suspend fun fetchMessages(chatId: String): List<Message> {
         require(chatId.matches(Regex("^[0-9a-fA-F-]{36}$"))) { "Некорректный идентификатор чата" }
         val raw = request(
-            "messages?select=id,chat_id,sender_id,body,media_path,media_mime,media_file_name,reply_to,edited_at,expires_at,created_at&chat_id=eq.$chatId&order=created_at.asc&limit=100",
+            "messages?select=id,chat_id,sender_id,body,media_path,media_mime,media_file_name,reply_to,edited_at,expires_at,created_at&chat_id=eq.$chatId&order=created_at.desc&limit=100",
             "GET"
         )
         val rows = JSONArray(raw)
-        return buildList { for (i in 0 until rows.length()) add(parseMessage(rows.getJSONObject(i))) }
+        return buildList { for (i in rows.length() - 1 downTo 0) add(parseMessage(rows.getJSONObject(i))) }
     }
 
     private fun parseMessage(row: JSONObject) = Message(
