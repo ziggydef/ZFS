@@ -176,7 +176,7 @@ private fun ChatsScreen(
             filtered.isEmpty() -> EmptyState("Пока нет чатов", "Найди человека во вкладке «Контакты», чтобы начать общение.")
             else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(bottom = 90.dp)) {
                 items(filtered, key = { it.id }) { chat ->
-                    ChatRow(chat.title ?: if (chat.kind == ChatKind.GROUP) "Групповой чат" else "Личный чат", chat.lastMessage?.body ?: "Начните общение", chat.id.take(2).uppercase()) { onOpen(chat.id) }
+                    ChatRow(chat.title ?: if (chat.kind == ChatKind.GROUP) "Групповой чат" else "Личный чат", chat.lastMessage?.body ?: chat.lastMessage?.mediaFileName?.let { "📎 $it" } ?: "Начните общение", chat.id.take(2).uppercase()) { onOpen(chat.id) }
                 }
             }
         }
@@ -339,7 +339,7 @@ private fun ConversationScreen(modifier: Modifier, chatId: String, repository: C
                 sending = true
                 error = null
                 runCatching {
-                    val mime = context.contentResolver.getType(uri) ?: "application/octet-stream"
+                    val mime = resolveAttachmentMimeType(context.contentResolver.getType(uri), name)
                     val name = context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
                         ?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
                         ?: "attachment"
@@ -642,6 +642,30 @@ private fun ProfileScreen(modifier: Modifier, authRepository: AuthRepository, re
                 busy = false
             }
         }) { Text("Выйти из аккаунта", color = Muted) }
+    }
+}
+
+private fun resolveAttachmentMimeType(resolved: String?, fileName: String): String {
+    val allowed = setOf(
+        "image/jpeg", "image/png", "image/webp", "image/gif",
+        "application/pdf", "text/plain", "application/zip",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    )
+    if (resolved in allowed) return resolved!!
+    return when (fileName.substringAfterLast('.', "").lowercase()) {
+        "jpg", "jpeg" -> "image/jpeg"
+        "png" -> "image/png"
+        "webp" -> "image/webp"
+        "gif" -> "image/gif"
+        "pdf" -> "application/pdf"
+        "txt" -> "text/plain"
+        "zip" -> "application/zip"
+        "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        "pptx" -> "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        else -> resolved ?: "application/octet-stream"
     }
 }
 
