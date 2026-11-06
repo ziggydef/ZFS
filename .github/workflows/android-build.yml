@@ -24,6 +24,22 @@ jobs:
         run: yes | sdkmanager --licenses || true
       - name: Install Android SDK packages
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+      - name: Validate Supabase public configuration
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$SUPABASE_URL" != "https://trjpcwyxhgtwnpiflclp.supabase.co" ]]; then
+            echo "::error::SUPABASE_URL is missing or does not match the becamce project."
+            exit 1
+          fi
+          case "$SUPABASE_ANON_KEY" in
+            sb_publishable_*) echo "Supabase publishable key format detected." ;;
+            eyJ*) echo "Legacy Supabase anon key format detected." ;;
+            *) echo "::error::SUPABASE_ANON_KEY must be the project's publishable key (sb_publishable_...) or legacy anon key (JWT beginning eyJ...). Do not use a secret/service-role key."; exit 1 ;;
+          esac
       - name: Run unit tests
         run: gradle --no-daemon :app:testDebugUnitTest
       - name: Assemble final debug APK
