@@ -28,7 +28,6 @@ import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Send
-import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
@@ -163,7 +162,6 @@ private fun ChatsScreen(
                 Text("becamce", color = White, fontSize = 30.sp, fontWeight = FontWeight.Bold)
                 Text("ТВОЁ ПРОСТРАНСТВО ОБЩЕНИЯ", color = Muted, fontSize = 9.sp, letterSpacing = 1.6.sp)
             }
-            IconButton(onClick = {}) { Icon(Icons.Rounded.Settings, contentDescription = "Настройки", tint = Muted) }
         }
         Spacer(Modifier.height(24.dp))
         SearchField(search, onSearchChange, "Поиск чатов")
