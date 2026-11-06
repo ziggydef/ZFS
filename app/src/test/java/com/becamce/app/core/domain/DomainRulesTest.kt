@@ -13,6 +13,18 @@ class InputValidationTest {
         assertEquals("Проверьте адрес электронной почты", InputValidation.email("not-an-email"))
     }
 
+    @Test fun validatesInternationalPhoneNumbers() {
+        assertNull(InputValidation.phone("+4915112345678"))
+        assertEquals("Формат номера: +4915112345678", InputValidation.phone("0151 12345678"))
+        assertEquals("Формат номера: +4915112345678", InputValidation.phone("+012345678"))
+    }
+
+    @Test fun validatesSmsCodeLengthAndDigits() {
+        assertNull(InputValidation.smsCode("123456"))
+        assertEquals("Введите 6-значный код из SMS", InputValidation.smsCode("12345"))
+        assertEquals("Введите 6-значный код из SMS", InputValidation.smsCode("12a456"))
+    }
+
     @Test fun requiresLongMixedPassword() {
         assertEquals("Пароль должен содержать не менее 10 символов", InputValidation.password("abc123"))
         assertNull(InputValidation.password("becamceSecure2026"))
