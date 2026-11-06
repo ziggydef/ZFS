@@ -52,6 +52,33 @@ class SupabaseAuthRepository(context: Context) : AuthRepository {
             saved.toAuthSession().also { mutableSession.value = it }
         }
 
+    override suspend fun refreshSessionIfNeeded(): Result<AuthSession?> = requestResult {
+        val saved = sessionStore.read() ?: return@requestResult null
+        val now = System.currentTimeMillis() / 1000L
+        if (saved.expiresAt > now + 90L) return@requestResult saved.toAuthSession()
+
+        try {
+            val response = execute(
+                "/auth/v1/token?grant_type=refresh_token",
+                JSONObject().put("refresh_token", saved.refreshToken),
+                bearer = null
+            )
+            val accessToken = response.optString("access_token")
+            val refreshToken = response.optString("refresh_token").ifBlank { saved.refreshToken }
+            if (accessToken.isBlank()) error("Не удалось обновить сессию")
+            val expiresAt = response.optLong("expires_at").takeIf { it > 0 }
+                ?: (now + response.optLong("expires_in", 3600L))
+            val userId = response.optJSONObject("user")?.optString("id").orEmpty().ifBlank { saved.userId }
+            val renewed = StoredSession(userId, accessToken, refreshToken, expiresAt)
+            sessionStore.write(renewed)
+            renewed.toAuthSession().also { mutableSession.value = it }
+        } catch (error: Exception) {
+            sessionStore.clear()
+            mutableSession.value = null
+            throw error
+        }
+    }
+
     override suspend fun signOut(): Result<Unit> = requestResult {
         val saved = sessionStore.read()
         try {
