@@ -36,7 +36,10 @@ class SupabaseAuthRepository(context: Context) : AuthRepository {
                 .put("email", email.trim())
                 .put("password", password)
                 .put("data", JSONObject().put("display_name", displayName.trim()))
-            execute("/auth/v1/signup", body, bearer = null)
+            val response = execute("/auth/v1/signup", body, bearer = null)
+            if (response.has("access_token") && response.has("refresh_token")) {
+                saveSessionFromAuthResponse(response)
+            }
             Unit
         }
 
