@@ -46,6 +46,7 @@ This is the delivery checklist for becamce. Items are not considered complete un
 ## Channels and bots
 - [ ] Public/private channels and subscriptions
 - [x] RLS hardening for public subscriptions and channel post edits
+- [x] Secure message edit/delete RPCs with restricted direct table mutation
 - [ ] Channel publishing and moderation roles
 - [ ] Bot registration and scoped API tokens
 - [ ] Bot permissions, quotas, revocation and abuse controls
