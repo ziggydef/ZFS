@@ -104,7 +104,13 @@ class SupabaseProfileRepository(context: Context, private val authRepository: Au
         }
 
     private suspend fun <T> result(block: suspend () -> T): Result<T> =
-        try { Result.success(block()) } catch (error: Exception) { Result.failure(error) }
+        try {
+            Result.success(block())
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            Result.failure(error)
+        }
 
     private companion object { val JSON = "application/json; charset=utf-8".toMediaType() }
 }
