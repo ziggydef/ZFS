@@ -4,7 +4,7 @@ import android.content.Context
 import org.webrtc.AudioSource
 import org.webrtc.AudioTrack
 import org.webrtc.IceCandidate
-import org.webrtc.JavaAudioDeviceModule
+import org.webrtc.audio.JavaAudioDeviceModule
 import org.webrtc.MediaConstraints
 import org.webrtc.PeerConnection
 import org.webrtc.PeerConnectionFactory
@@ -25,6 +25,7 @@ internal class VoiceCallEngine(
     private val audioTrack: AudioTrack
     private val peerConnection: PeerConnection
     private var closed = false
+    private val pendingRemoteCandidates = mutableListOf<IceCandidate>()
 
     init {
         PeerConnectionFactory.initialize(
@@ -81,9 +82,10 @@ internal class VoiceCallEngine(
     }
 
     fun addRemoteCandidate(sdpMid: String?, sdpMLineIndex: Int, candidate: String) {
-        if (!closed) {
-            peerConnection.addIceCandidate(IceCandidate(sdpMid, sdpMLineIndex, candidate))
-        }
+        if (closed) return
+        val ice = IceCandidate(sdpMid, sdpMLineIndex, candidate)
+        if (peerConnection.remoteDescription == null) pendingRemoteCandidates.add(ice)
+        else peerConnection.addIceCandidate(ice)
     }
 
     fun setMuted(muted: Boolean) {
@@ -124,6 +126,8 @@ internal class VoiceCallEngine(
 
     private suspend fun setRemoteDescription(description: SessionDescription) {
         setDescription { peerConnection.setRemoteDescription(it, description) }
+        pendingRemoteCandidates.toList().forEach { peerConnection.addIceCandidate(it) }
+        pendingRemoteCandidates.clear()
     }
 
     private suspend fun setDescription(set: (SdpObserver) -> Unit) {
