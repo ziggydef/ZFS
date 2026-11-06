@@ -63,7 +63,7 @@ private fun BecamceApp() {
     val profileRepository = remember { SupabaseProfileRepository(context.applicationContext) }
     val chatRepository = remember { SupabaseChatRepository(context.applicationContext) }
     LaunchedEffect(authRepository) { authRepository.refreshSessionIfNeeded() }
-    val session by authRepository.session.collectAsState()
+    val session by authRepository.session.collectAsState(initial = null)
     MaterialTheme(colorScheme = darkColorScheme(background = Night, surface = Panel, primary = Violet, onBackground = White, onSurface = White)) {
         if (session == null) AuthScreen(authRepository)
         else MessengerShell(authRepository, profileRepository, chatRepository)
