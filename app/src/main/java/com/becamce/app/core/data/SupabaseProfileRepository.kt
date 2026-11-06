@@ -68,6 +68,22 @@ class SupabaseProfileRepository(context: Context, private val authRepository: Au
             .filter { it.id != sessions.read()?.userId }
     }
 
+    override suspend fun getProfilesByIds(userIds: List<String>): Result<List<UserProfile>> = result {
+        val ids = userIds.distinct()
+        require(ids.size <= 100 && ids.all {
+            it.matches(Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"))
+        }) { "Некорректный список пользователей" }
+        if (ids.isEmpty()) {
+            emptyList()
+        } else {
+            val rows = JSONArray(request(
+                "profiles?select=id,username,display_name,avatar_path,bio&id=in.(${ids.joinToString(",")})",
+                "GET"
+            ))
+            buildList { for (i in 0 until rows.length()) add(parse(rows.getJSONObject(i))) }
+        }
+    }
+
     private fun parse(row: JSONObject) = UserProfile(
         id = row.getString("id"),
         username = row.optString("username").takeIf { it.isNotBlank() && it != "null" },
