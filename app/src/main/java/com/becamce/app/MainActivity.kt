@@ -341,11 +341,11 @@ private fun ConversationScreen(modifier: Modifier, chatId: String, repository: C
                 sending = true
                 error = null
                 runCatching {
-                    val name = context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+                    val originalName = context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
                         ?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
-                        ?.take(180)
                         ?: "attachment"
-                    val mime = resolveAttachmentMimeType(context.contentResolver.getType(uri), name)
+                    val name = originalName.take(180)
+                    val mime = resolveAttachmentMimeType(context.contentResolver.getType(uri), originalName)
                     val bytes = ByteArrayOutputStream().use { output ->
                         val input = context.contentResolver.openInputStream(uri)
                             ?: throw IllegalStateException("Не удалось прочитать файл")
