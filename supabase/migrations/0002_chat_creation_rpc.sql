@@ -52,7 +52,7 @@ begin
 
   insert into public.chat_members(chat_id, user_id, role)
   select v_chat_id, member_id, 'member'
-    from unnest(p_member_ids) as member_id;
+    from unnest(p_member_ids) as members(member_id);
 
   return v_chat_id;
 end;
