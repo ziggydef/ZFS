@@ -27,6 +27,8 @@ class InputValidationTest {
 
     @Test fun requiresLongMixedPassword() {
         assertEquals("Пароль должен содержать не менее 10 символов", InputValidation.password("abc123"))
+        assertEquals("Добавьте в пароль буквы и цифры", InputValidation.password("longpassword"))
+        assertEquals("Добавьте в пароль буквы и цифры", InputValidation.password("1234567890"))
         assertNull(InputValidation.password("becamceSecure2026"))
     }
 
