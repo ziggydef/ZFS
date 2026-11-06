@@ -310,6 +310,7 @@ private fun ConversationScreen(modifier: Modifier, chatId: String, repository: C
     var error by remember { mutableStateOf<String?>(null) }
     var editingMessageId by remember { mutableStateOf<String?>(null) }
     var editingDraft by remember { mutableStateOf("") }
+    var replyingTo by remember { mutableStateOf<com.becamce.app.core.model.Message?>(null) }
     var actionBusy by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
@@ -337,8 +338,20 @@ private fun ConversationScreen(modifier: Modifier, chatId: String, repository: C
                             )
                         ).background(if (ownMessage) Color(0xFF44336E) else Panel).padding(horizontal = 13.dp, vertical = 10.dp)
                     ) {
+                        msg.replyTo?.let { replyId ->
+                            messages.firstOrNull { it.id == replyId }?.let { replied ->
+                                Text("↳ ${replied.body.orEmpty().take(100)}", color = White.copy(alpha = .62f), fontSize = 10.sp)
+                            }
+                        }
                         Text(msg.body.orEmpty(), color = White, fontSize = 14.sp)
                         if (msg.editedAt != null) Text("изменено", color = White.copy(alpha = .58f), fontSize = 9.sp)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            TextButton(
+                                enabled = !actionBusy,
+                                contentPadding = PaddingValues(0.dp),
+                                onClick = { replyingTo = msg }
+                            ) { Text("Ответить", color = Color.White.copy(alpha = .72f), fontSize = 10.sp) }
+                        }
                         if (ownMessage) {
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 TextButton(
@@ -364,6 +377,19 @@ private fun ConversationScreen(modifier: Modifier, chatId: String, repository: C
             }
         }
         error?.let { Text(it, color = Color(0xFFFF8B9A), fontSize = 12.sp) }
+        replyingTo?.let { target ->
+            Row(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Panel).padding(horizontal = 12.dp, vertical = 7.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Ответ на сообщение", color = Violet, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                    Text(target.body.orEmpty().take(100), color = Muted, fontSize = 11.sp, maxLines = 1)
+                }
+                TextButton(onClick = { replyingTo = null }) { Text("Отмена", color = Muted) }
+            }
+            Spacer(Modifier.height(6.dp))
+        }
         Row(verticalAlignment = Alignment.CenterVertically) {
             TextField(
                 value = draft, onValueChange = { draft = it; error = null }, modifier = Modifier.weight(1f),
@@ -375,7 +401,7 @@ private fun ConversationScreen(modifier: Modifier, chatId: String, repository: C
             IconButton(enabled = draft.isNotBlank() && !sending, onClick = {
                 scope.launch {
                     sending = true
-                    repository.sendMessage(chatId, draft).onSuccess { draft = "" }.onFailure { error = it.message ?: "Не удалось отправить" }
+                    repository.sendMessage(chatId, draft, replyingTo?.id).onSuccess { draft = ""; replyingTo = null }.onFailure { error = it.message ?: "Не удалось отправить" }
                     sending = false
                 }
             }) { Icon(Icons.Rounded.Send, contentDescription = "Отправить", tint = Violet) }
