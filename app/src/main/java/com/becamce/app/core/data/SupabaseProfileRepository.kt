@@ -51,7 +51,7 @@ class SupabaseProfileRepository(context: Context, private val authRepository: Au
     override suspend fun isUsernameAvailable(username: String): Result<Boolean> = result {
         require(Regex("^[a-zA-Z0-9_]{4,24}$").matches(username)) { "Ник: 4–24 символа, латиница, цифры и _" }
         val encoded = URLEncoder.encode(username.lowercase(), Charsets.UTF_8.name())
-        val rows = JSONArray(request("profiles?select=id&username=ilike.$encoded", "GET"))
+        val rows = JSONArray(request("profiles?select=id&username=eq.$encoded", "GET"))
         rows.length() == 0
     }
 
