@@ -173,7 +173,15 @@ fun AuthScreen(repository: AuthRepository, recoveryToken: String? = null, onReco
                 ) { Text("Забыли пароль?", color = AuthMuted) }
             }
 
-            if (recoveryToken == null) {
+            if (recoveryToken != null) {
+                TextButton(
+                    enabled = !busy,
+                    onClick = onRecoveryComplete,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                ) {
+                    Text("Вернуться ко входу", color = AuthViolet)
+                }
+            } else {
                 TextButton(
                     enabled = !busy,
                     onClick = { isSignUp = !isSignUp; error = null; notice = null },
