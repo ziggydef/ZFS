@@ -300,7 +300,13 @@ class SupabaseChatRepository(context: Context, private val authRepository: AuthR
     }
 
     private suspend fun <T> result(block: suspend () -> T): Result<T> =
-        try { Result.success(block()) } catch (error: Exception) { Result.failure(error) }
+        try {
+            Result.success(block())
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            Result.failure(error)
+        }
 
     private companion object {
         const val CHAT_REFRESH_MS = 8000L
