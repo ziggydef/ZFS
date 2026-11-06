@@ -176,7 +176,7 @@ fun AuthScreen(repository: AuthRepository, recoveryToken: String? = null, onReco
             if (recoveryToken != null) {
                 TextButton(
                     enabled = !busy,
-                    onClick = onRecoveryComplete,
+                    onClick = { error = null; onRecoveryComplete() },
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 ) {
                     Text("Вернуться ко входу", color = AuthViolet)
