@@ -40,7 +40,9 @@ Items are marked complete when implemented in source; live-backend verification 
 - [ ] Delivery/read state in UI
 - [x] Server-side add/remove group-member RPC with owner/admin checks
 - [ ] Group membership management UI, role editing and invites
-- [ ] Image/video/document uploads and private storage
+- [x] Private storage bucket and member-only attachment access policies
+- [x] Upload/download of image, PDF, text, ZIP and Office attachments (20 MB limit)
+- [ ] Video attachments and in-chat image previews
 - [ ] Voice recording and playback
 
 ## Privacy and safety
