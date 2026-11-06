@@ -263,7 +263,10 @@ private fun PeopleScreen(
             ) { Text(if (busyId == "group") "Создаём…" else "Создать группу") }
         }
         Spacer(Modifier.height(18.dp))
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+        LazyColumn(
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(9.dp)
+        ) {
             items(results, key = { it.id }) { profile ->
                 Row(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Panel).padding(14.dp),
