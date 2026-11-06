@@ -1,5 +1,7 @@
 -- Stable, case-insensitive usernames for public discovery.
 -- Existing profiles without a username remain valid.
+update public.profiles set username = lower(username) where username is not null;
+
 alter table public.profiles drop constraint if exists username_format;
 alter table public.profiles
   add constraint username_format
