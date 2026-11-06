@@ -343,6 +343,7 @@ private fun ConversationScreen(modifier: Modifier, chatId: String, repository: C
                 runCatching {
                     val name = context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
                         ?.use { cursor -> if (cursor.moveToFirst()) cursor.getString(0) else null }
+                        ?.take(180)
                         ?: "attachment"
                     val mime = resolveAttachmentMimeType(context.contentResolver.getType(uri), name)
                     val bytes = ByteArrayOutputStream().use { output ->
@@ -372,6 +373,7 @@ private fun ConversationScreen(modifier: Modifier, chatId: String, repository: C
         repository.markRead(chatId)
         repository.observeMessages(chatId)
             .retryWhen { cause, attempt ->
+                if (cause is kotlinx.coroutines.CancellationException) return@retryWhen false
                 error = cause.message ?: "Связь потеряна. Повторяем подключение…"
                 kotlinx.coroutines.delay((1_000L shl attempt.coerceAtMost(5).toInt()).coerceAtMost(30_000L))
                 true
@@ -596,7 +598,7 @@ private fun ProfileScreen(modifier: Modifier, authRepository: AuthRepository, re
         OutlinedTextField(value = displayName, onValueChange = { displayName = it }, label = { Text("Имя") }, singleLine = true, modifier = Modifier.fillMaxWidth(), colors = profileFieldColors())
         Spacer(Modifier.height(10.dp))
         OutlinedTextField(
-            value = username, onValueChange = { username = it.removePrefix("@").lowercase().filter { ch -> ch.isLetterOrDigit() || ch == '_' }.take(24) },
+            value = username, onValueChange = { username = it.removePrefix("@").lowercase().filter { ch -> ch in 'a'..'z' || ch in '0'..'9' || ch == '_' }.take(24) },
             label = { Text("Юзернейм") }, leadingIcon = { Text("@", color = Violet) }, singleLine = true,
             supportingText = { Text("4–24 символа: латиница, цифры и _", color = Muted) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Ascii), modifier = Modifier.fillMaxWidth(), colors = profileFieldColors()
