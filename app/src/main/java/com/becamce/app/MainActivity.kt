@@ -149,7 +149,7 @@ private fun ChatsScreen(
             .retryWhen { cause, attempt ->
                 error = cause.message ?: "Связь потеряна. Повторяем подключение…"
                 loading = false
-                kotlinx.coroutines.delay((1_000L shl attempt.coerceAtMost(5).toInt()).coerceAtMost(30_000L))
+                kotlinx.coroutines.delay((1_000L * (attempt + 1L)).coerceAtMost(30_000L))
                 true
             }
             .catch { error = it.message ?: "Не удалось загрузить чаты"; loading = false }
