@@ -12,6 +12,8 @@ interface AuthRepository {
     val session: Flow<AuthSession?>
     suspend fun signUp(email: String, password: String, displayName: String): Result<Unit>
     suspend fun signIn(email: String, password: String): Result<AuthSession>
+    suspend fun requestPhoneCode(phone: String, displayName: String): Result<Unit>
+    suspend fun verifyPhoneCode(phone: String, code: String): Result<AuthSession>
     suspend fun refreshSessionIfNeeded(): Result<AuthSession?>
     suspend fun signOut(): Result<Unit>
     suspend fun requestPasswordReset(email: String): Result<Unit>
