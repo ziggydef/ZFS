@@ -92,6 +92,21 @@ alter table public.channels enable row level security;
 alter table public.channel_subscriptions enable row level security;
 alter table public.channel_posts enable row level security;
 
+-- SECURITY DEFINER avoids recursive RLS evaluation when membership policies
+-- need to ask whether the current user belongs to a chat.
+create or replace function public.is_chat_member(p_chat_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $
+  select exists (
+    select 1 from public.chat_members m
+    where m.chat_id = p_chat_id and m.user_id = auth.uid()
+  );
+$;
+
 create policy "Profiles visible to authenticated users"
 on public.profiles for select to authenticated using (true);
 create policy "Users create own profile"
@@ -101,13 +116,13 @@ on public.profiles for update to authenticated using (auth.uid() = id) with chec
 
 create policy "Members read chats"
 on public.chats for select to authenticated
-using (exists (select 1 from public.chat_members m where m.chat_id = id and m.user_id = auth.uid()));
+using (public.is_chat_member(id));
 create policy "Authenticated users create chats"
 on public.chats for insert to authenticated with check (created_by = auth.uid());
 
 create policy "Members read membership"
 on public.chat_members for select to authenticated
-using (exists (select 1 from public.chat_members mine where mine.chat_id = chat_id and mine.user_id = auth.uid()));
+using (user_id = auth.uid() or public.is_chat_member(chat_id));
 create policy "Chat creator adds first membership"
 on public.chat_members for insert to authenticated
 with check (
@@ -117,12 +132,12 @@ with check (
 
 create policy "Chat members read messages"
 on public.messages for select to authenticated
-using (exists (select 1 from public.chat_members m where m.chat_id = messages.chat_id and m.user_id = auth.uid()));
+using (public.is_chat_member(messages.chat_id));
 create policy "Members send as themselves"
 on public.messages for insert to authenticated
 with check (
   sender_id = auth.uid()
-  and exists (select 1 from public.chat_members m where m.chat_id = messages.chat_id and m.user_id = auth.uid())
+  and public.is_chat_member(messages.chat_id)
 );
 create policy "Authors edit own messages"
 on public.messages for update to authenticated
