@@ -379,7 +379,10 @@ private fun ConversationScreen(modifier: Modifier, chatId: String, repository: C
                     require(bytes.isNotEmpty()) { "Файл пустой" }
                     repository.uploadAttachment(chatId, name, mime, bytes, replyingTo?.id).onFailure { throw it }
                     replyingTo = null
-                }.onFailure { error = it.message ?: "Не удалось отправить файл" }
+                }.onFailure {
+                    if (it is kotlinx.coroutines.CancellationException) throw it
+                    error = it.message ?: "Не удалось отправить файл"
+                }
                 sending = false
             }
         }
