@@ -214,6 +214,8 @@ private fun PeopleScreen(
     var loading by remember { mutableStateOf(false) }
     var busyId by remember { mutableStateOf<String?>(null) }
     var message by remember { mutableStateOf<String?>(null) }
+    var selectedIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var groupTitle by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
     Column(modifier.fillMaxSize().background(Night).padding(20.dp)) {
         Spacer(Modifier.height(24.dp))
@@ -237,6 +239,29 @@ private fun PeopleScreen(
             shape = RoundedCornerShape(15.dp)
         ) { if (loading) CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp) else Text("Найти") }
         message?.let { Text(it, color = Color(0xFFFF8B9A), modifier = Modifier.padding(top = 10.dp)) }
+        if (selectedIds.isNotEmpty()) {
+            Spacer(Modifier.height(12.dp))
+            OutlinedTextField(
+                value = groupTitle, onValueChange = { groupTitle = it.take(60) },
+                label = { Text("Название группы") }, singleLine = true,
+                modifier = Modifier.fillMaxWidth(), colors = profileFieldColors()
+            )
+            Text("${selectedIds.size} выбрано · для группы выбери минимум двух человек", color = Muted, fontSize = 11.sp)
+            Button(
+                onClick = {
+                    scope.launch {
+                        busyId = "group"
+                        chats.createChat(ChatKind.GROUP, groupTitle.trim().ifBlank { "Новая группа" }, selectedIds.toList())
+                            .onSuccess { selectedIds = emptySet(); groupTitle = ""; onChatCreated(it) }
+                            .onFailure { message = it.message ?: "Не удалось создать группу" }
+                        busyId = null
+                    }
+                },
+                enabled = selectedIds.size >= 2 && busyId == null,
+                colors = ButtonDefaults.buttonColors(containerColor = Violet),
+                modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)
+            ) { Text(if (busyId == "group") "Создаём…" else "Создать группу") }
+        }
         Spacer(Modifier.height(18.dp))
         LazyColumn(verticalArrangement = Arrangement.spacedBy(9.dp)) {
             items(results, key = { it.id }) { profile ->
@@ -252,6 +277,13 @@ private fun PeopleScreen(
                         Text(profile.displayName.ifBlank { "Пользователь" }, color = White, fontWeight = FontWeight.SemiBold)
                         Text(profile.username?.let { "@$it" } ?: "Юзернейм не задан", color = Muted, fontSize = 12.sp)
                     }
+                    Checkbox(
+                        checked = profile.id in selectedIds,
+                        onCheckedChange = { checked ->
+                            selectedIds = if (checked) selectedIds + profile.id else selectedIds - profile.id
+                        },
+                        colors = CheckboxDefaults.colors(checkedColor = Violet, uncheckedColor = Muted)
+                    )
                     TextButton(enabled = busyId == null, onClick = {
                         scope.launch {
                             busyId = profile.id
