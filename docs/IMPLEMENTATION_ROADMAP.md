@@ -35,6 +35,8 @@ Items are marked complete when implemented in source; live-backend verification 
 - [ ] Pagination, local cache and offline queue
 - [x] Edit/delete own messages in the conversation UI
 - [x] Reply to messages in the conversation UI
+- [x] Confirmation before deleting a message
+- [x] Restrict execution of SECURITY DEFINER membership/trigger helpers
 - [ ] Delivery/read state in UI
 - [ ] Group membership management, roles and invites
 - [ ] Image/video/document uploads and private storage
