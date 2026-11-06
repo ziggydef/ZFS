@@ -12,7 +12,7 @@ The backend is planned on Supabase. A project must be created by the project own
 8. Configure a server-side scheduled worker for message expiry. A client-side timer is not sufficient.
 9. Test every RLS policy with at least two separate test accounts before real user data is used.
 
-The Android client currently uses Supabase Auth for email authentication. Chat and profile repository implementations are being integrated; live project verification is still pending. Realtime websocket delivery is not yet implemented (the first message repository uses periodic refresh). messaging, storage, and the other backend features are still under implementation. Do not paste service-role keys into source code, GitHub commits, screenshots, or chat.
+The Android client currently uses Supabase Auth for email authentication. Chat and profile data repositories are present, but the main UI integration and live project verification are still pending. Realtime websocket delivery is not yet implemented (the first message repository uses periodic refresh). messaging, storage, and the other backend features are still under implementation. Do not paste service-role keys into source code, GitHub commits, screenshots, or chat.
 
 
 ## Android app configuration
