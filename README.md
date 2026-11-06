@@ -1,16 +1,27 @@
 # becamce
 
-Native Android messenger project. Current repository milestone: initial UI foundation.
+Native Android messenger built with Kotlin and Jetpack Compose.
 
 ## Stack
-- Kotlin and Jetpack Compose
+- Kotlin, Jetpack Compose, Material 3
 - Android SDK 36, minSdk 26, JDK 17
-- Planned backend: Supabase Auth, PostgreSQL, Realtime and Storage
-- Planned push: Firebase Cloud Messaging
-- Planned end-to-end encryption: established protocol/library, not custom cryptography
+- Supabase Auth, PostgreSQL and PostgREST
+- Android Keystore + AES-GCM encrypted session storage
 
-## Current state
-The app now includes email sign-up/sign-in/password-reset screens, a profile screen with sign-out, Supabase Auth REST calls, and AES-GCM encrypted session storage backed by Android Keystore. A Supabase chat data repository now supports chat/message reads, message sending, chat creation, edit/delete RPCs and read markers; a profile repository supports profile read/update and username availability. These repositories are not yet fully connected to the main navigation UI, and live Supabase behavior has not been verified. Realtime WebSocket delivery, contact discovery, media transfer, calls, channels, bot API, and E2EE are not implemented yet. Authentication requires a Supabase project and the repository Actions secrets described in `docs/BACKEND_SETUP.md`.
+## Implemented in this milestone
+- Email registration, sign-in and password reset
+- Profile editing: display name, unique public username and bio
+- Case-insensitive username uniqueness enforced by PostgreSQL
+- People search by `@username` or display name
+- Direct-chat creation from search results
+- Basic chat list, conversation view and message sending
+- Message edit/delete/read RPCs in the data layer
+- Manual-only GitHub Actions APK workflow
+
+## Not yet release-complete
+Chat/message refresh currently uses polling rather than Realtime WebSockets. Group management, media sharing, voice messages, calls, channels, bot API, push notifications, offline queue, and audited end-to-end encryption are not implemented. Supabase integration has not been tested against a live project. A real backend URL and publishable key are required for account and cloud features.
+
+See [backend setup](docs/BACKEND_SETUP.md) and [implementation roadmap](docs/IMPLEMENTATION_ROADMAP.md). Apply migrations `0001` through `0007` in order.
 
 ## Build policy
-The GitHub Actions workflow is manual-only and requires the explicit boolean confirmation input. No builds are triggered by commits. The single final APK build should be started only after implementation and review are complete.
+The GitHub Actions workflow is manual-only and requires explicit final-build confirmation. Do not start intermediate builds; the release APK build is reserved for the final review.
