@@ -8,6 +8,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -19,6 +21,7 @@ import java.util.concurrent.TimeUnit
 class SupabaseAuthRepository(context: Context) : AuthRepository {
     private val config = BackendConfig(BuildConfig.SUPABASE_URL, BuildConfig.SUPABASE_ANON_KEY)
     private val sessionStore = SecureSessionStore(context.applicationContext)
+    private val refreshMutex = Mutex()
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(20, TimeUnit.SECONDS)
@@ -62,7 +65,7 @@ class SupabaseAuthRepository(context: Context) : AuthRepository {
         saveSessionFromAuthResponse(response)
     }
 
-    override suspend fun refreshSessionIfNeeded(): Result<AuthSession?> = requestResult {
+    override suspend fun refreshSessionIfNeeded(): Result<AuthSession?> = refreshMutex.withLock { requestResult {
         val saved = sessionStore.read() ?: return@requestResult null
         val now = System.currentTimeMillis() / 1000L
         if (saved.expiresAt > now + 90L) return@requestResult saved.toAuthSession()
@@ -92,7 +95,7 @@ class SupabaseAuthRepository(context: Context) : AuthRepository {
             }
             throw error
         }
-    }
+    } }
 
     override suspend fun signOut(): Result<Unit> = requestResult {
         val saved = sessionStore.read()
