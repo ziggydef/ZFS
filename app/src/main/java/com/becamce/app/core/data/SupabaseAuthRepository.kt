@@ -104,7 +104,7 @@ class SupabaseAuthRepository(context: Context) : AuthRepository {
         }
     } }
 
-    override suspend fun signOut(): Result<Unit> = requestResult {
+    override suspend fun signOut(): Result<Unit> = refreshMutex.withLock { requestResult {
         val saved = sessionStore.read()
         try {
             if (saved != null) execute("/auth/v1/logout", JSONObject(), saved.accessToken)
@@ -113,7 +113,7 @@ class SupabaseAuthRepository(context: Context) : AuthRepository {
             mutableSession.value = null
         }
         Unit
-    }
+    } }
 
     override suspend fun requestPasswordReset(email: String): Result<Unit> = requestResult {
         execute("/auth/v1/recover?redirect_to=becamce%3A%2F%2Fauth%2Fcallback", JSONObject().put("email", email.trim()), bearer = null)
