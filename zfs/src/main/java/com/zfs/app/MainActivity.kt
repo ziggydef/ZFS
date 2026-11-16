@@ -76,7 +76,7 @@ class MainActivity:ComponentActivity(){
       Text("Данные шифруются до записи. Простое переименование не откроет содержимое.",color=Muted,fontSize=12.sp)
       OutlinedTextField(fileName,{fileName=it},Modifier.fillMaxWidth(),label={Text("Имя файла")},singleLine=true)
       Box{TextButton(onClick={menu=true}){Text("Формат: ."+format+"  ▾",color=Accent)}
-       DropdownMenu(expanded=menu,onDismissRequest={menu=false}){Formats.forEach{f->DropdownMenuItem(text={Text("."+f)},onClick={format.let{ {format=f;menu=false} })}}
+       DropdownMenu(expanded=menu,onDismissRequest={menu=false}){Formats.forEach{f->DropdownMenuItem(text={Text("."+f)},onClick={ { format=f; menu=false } })}}
       }
       OutlinedTextField(password,{password=it},Modifier.fillMaxWidth(),label={Text("Пароль")},visualTransformation=PasswordVisualTransformation(),singleLine=true)
       OutlinedTextField(body,{body=it},Modifier.fillMaxWidth().height(180.dp),label={Text("Содержимое")},minLines=5)
