@@ -1,5 +1,7 @@
 # ZFS Vault
 
+![ZFS social preview](assets/zfs-social-preview.svg)
+
 **ZFS Vault** — Android-приложение для создания и открытия зашифрованных файлов собственного формата ZFSF.
 
 ## Возможности
