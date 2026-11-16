@@ -112,7 +112,7 @@ class MainActivity:ComponentActivity(){
     restored=result.second
     restoredName=displayName(uri).substringBeforeLast('.',displayName(uri))
     imported=restored;importedName=restoredName
-    preview=if(format=="zimg")BitmapFactory.decodeByteArray(restored,0,restored.size) else null
+    preview=if(format=="zimg")BitmapFactory.decodeByteArray(restored!!,0,restored!!.size) else null
     status=if(format=="zimg")"Изображение расшифровано. Можно просмотреть и восстановить." else "Файл расшифрован. Нажми «Восстановить оригинал»."
    }
   }catch(e:Exception){status="Не удалось открыть: проверь пароль, формат и целостность файла."}
