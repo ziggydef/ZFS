@@ -1,18 +1,26 @@
 # ZFS Vault 0.2
 
-Android module: `:zfs`
-Web app: `web/index.html`
-Format specification: `docs/ZFS_FORMAT_V1.md`
+Основной Android-модуль проекта. Пространство имён: `com.zfs.app`.
 
-Build: `gradle --no-daemon :zfs:assembleDebug`
+## Сборка
 
-Output: `zfs/build/outputs/apk/debug/zfs-debug.apk`
+Из корня репозитория:
 
-## Supported encrypted formats
+```bash
+gradle --no-daemon :zfs:assembleDebug
+```
 
-- Text/data: `.ztxt`, `.zdoc`, `.zdata`, `.zlog`
-- Media and files: `.zimg`, `.zvid`, `.zaud`, `.zpdf`, `.zarc`, `.zbin`
+Готовый APK:
 
-Import a file from the device, select a password, and create its encrypted ZFS container. On restore, image files can be previewed; other binary files can be exported and opened with a compatible app. Preserve the original filename before the ZFS extension (for example `scan.pdf.zpdf`) to retain its original extension on restore.
+`zfs/build/outputs/apk/debug/zfs-debug.apk`
 
-ZFSF v1 keeps its 38-byte header and AES-256-GCM/PBKDF2-HMAC-SHA256 encryption layout. Password loss means data loss. This prototype has not undergone an independent security audit.
+## Поддерживаемые типы
+
+- Текст и данные: `.ztxt`, `.zdoc`, `.zdata`, `.zlog`
+- Файлы и медиа: `.zimg`, `.zvid`, `.zaud`, `.zpdf`, `.zarc`, `.zbin`
+
+При создании контейнера выберите файл и задайте пароль длиной не менее 12 символов. Для восстановления откройте ZFS-файл и введите тот же пароль.
+
+Для бинарных файлов сохраняйте исходное расширение в имени до расширения ZFS, например `photo.jpg.zimg`.
+
+Спецификация контейнера находится в [документации](../docs/ZFS_FORMAT_V1.md). ZFS — прототип, не прошедший независимый аудит безопасности.

@@ -1,30 +1,57 @@
-# becamce
+# ZFS Vault
 
-Native Android messenger built with Kotlin and Jetpack Compose.
+**ZFS Vault** — Android-приложение для создания и открытия зашифрованных файлов собственного формата ZFSF.
 
-## Stack
-- Kotlin, Jetpack Compose, Material 3
-- Android SDK 36, minSdk 26, JDK 17
-- Supabase Auth, PostgreSQL and PostgREST
-- Android Keystore + AES-GCM encrypted session storage
+## Возможности
 
-## Implemented in this milestone
-- Email registration, sign-in and password reset
-- Profile editing: display name, unique public username and bio
-- Case-insensitive username uniqueness enforced by PostgreSQL
-- People search by `@username` or display name
-- Direct-chat creation from search results
-- Basic chat list, conversation view and message sending
-- Private chat attachments: images, PDF, text, ZIP and Office documents up to 20 MB
-- Reply to messages in the conversation UI
-- Edit/delete own messages in the conversation UI, backed by server-checked RPCs
-- Mark-chat-read RPC and periodic message refresh
-- Manual-only GitHub Actions APK workflow
+- Шифрование файлов с помощью AES-256-GCM.
+- Получение ключа из пароля через PBKDF2-HMAC-SHA256.
+- Импорт файлов с устройства и сохранение защищённых контейнеров.
+- Просмотр изображений и восстановление исходных файлов.
+- Поддержка текстовых, документных, медиа- и бинарных типов.
 
-## Not yet release-complete
-Chat/message refresh currently uses polling rather than Realtime WebSockets. Group member add/remove RPCs are present, but the group-management UI is not yet implemented. Voice messages, calls, channels, bot API, push notifications, offline queue, and audited end-to-end encryption are not implemented. Supabase integration has not been tested against a live project. A real backend URL and publishable key are required for account and cloud features.
+## Расширения
 
-See [backend setup](docs/BACKEND_SETUP.md) and [implementation roadmap](docs/IMPLEMENTATION_ROADMAP.md). Apply migrations `0001` through `0013` in order. Migration `0013` blocks secret-chat records until audited end-to-end encryption exists.
+| Расширение | Назначение |
+|---|---|
+| `.ztxt` | Текст |
+| `.zdoc` | Документы и заметки |
+| `.zdata` | Структурированные данные |
+| `.zlog` | Журналы и логи |
+| `.zimg` | Изображения |
+| `.zvid` | Видео |
+| `.zaud` | Аудио |
+| `.zpdf` | PDF |
+| `.zarc` | Архивы |
+| `.zbin` | Другие бинарные файлы |
 
-## Build policy
-The GitHub Actions workflow is manual-only and requires explicit final-build confirmation. Do not start intermediate builds; the release APK build is reserved for the final review.
+## Структура проекта
+
+- `zfs/` — исходный код Android-приложения.
+- `docs/ZFS_FORMAT_V1.md` — спецификация бинарного формата ZFSF v1.
+- `.github/workflows/zfs-build.yml` — GitHub Actions для сборки APK.
+- **Releases** — опубликованные релизы и готовые сборки находятся во вкладке Releases GitHub.
+
+## Сборка
+
+Требуются JDK 17, Android SDK 36 и Gradle 8.13.
+
+```bash
+gradle --no-daemon :zfs:assembleDebug
+```
+
+APK появится здесь:
+
+```
+zfs/build/outputs/apk/debug/zfs-debug.apk
+```
+
+## Формат и безопасность
+
+ZFSF v1 использует 38-байтовый заголовок, PBKDF2-HMAC-SHA256 (600 000 итераций) и AES-256-GCM. Расширение файла само по себе не обеспечивает защиту: содержимое защищает шифрование.
+
+**Важно:** ZFS — развивающийся проект и пока не проходил независимый аудит безопасности. Потеря пароля означает потерю доступа к содержимому. Храните резервные копии важных оригиналов.
+
+## Версия
+
+Текущая линия проекта: **ZFS Vault 0.2**.
