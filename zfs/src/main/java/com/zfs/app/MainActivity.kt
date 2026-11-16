@@ -80,7 +80,7 @@ class MainActivity:ComponentActivity(){
     ext in listOf("zip","7z","rar","tar","gz")->"zarc"
     else->"zbin"
    }
-   fileName=importedName!!.substringBeforeLast('.',importedName!!)
+   fileName=importedName!!
    preview=if(format=="zimg")BitmapFactory.decodeByteArray(bytes,0,bytes.size) else null
    body=""
    status="Импортирован файл: "+importedName+" ("+bytes.size+" байт). Формат ZFS: ."+format
@@ -110,7 +110,7 @@ class MainActivity:ComponentActivity(){
     status="Файл расшифрован и проверен: ."+format
    }else{
     restored=result.second
-    restoredName=displayName(uri).substringBeforeLast('.',displayName(uri))+"."+when(format){"zimg"->"png";"zvid"->"mp4";"zaud"->"audio";"zpdf"->"pdf";"zarc"->"zip";else->"bin"}
+    restoredName=displayName(uri).substringBeforeLast('.',displayName(uri))
     imported=restored;importedName=restoredName
     preview=if(format=="zimg")BitmapFactory.decodeByteArray(restored,0,restored.size) else null
     status=if(format=="zimg")"Изображение расшифровано. Можно просмотреть и восстановить." else "Файл расшифрован. Нажми «Восстановить оригинал»."
@@ -141,6 +141,7 @@ class MainActivity:ComponentActivity(){
        try{
         require(fileName.isNotBlank()){"Укажи имя"}
         require(password.length>=12){"Используй пароль минимум из 12 символов"}
+        require(format in listOf("ztxt","zdoc","zdata","zlog") || imported!=null){"Для медиа-форматов импортируй исходный файл"}
         val raw=if(imported!=null)imported!! else body.toByteArray(Charsets.UTF_8)
         pending=Zfs.encrypt(format,raw,password)
         val safe=fileName.trim().replace(Regex("[^A-Za-z0-9._-]"),"_").ifBlank{"zfs-file"}
