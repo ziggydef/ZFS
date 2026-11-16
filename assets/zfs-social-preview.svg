@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title desc">
+  <title id="title">ZFS — Your Files. Your Privacy.</title>
+  <desc id="desc">A dark violet encrypted file vault identity for ZFS.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#09080f"/><stop offset=".55" stop-color="#151024"/><stop offset="1" stop-color="#080910"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="72%" cy="48%" r="62%">
+      <stop offset="0" stop-color="#7c3aed" stop-opacity=".34"/><stop offset="1" stop-color="#7c3aed" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#c4b5fd" stop-opacity=".25"/><stop offset=".5" stop-color="#7c3aed" stop-opacity=".15"/><stop offset="1" stop-color="#4c1d95" stop-opacity=".38"/>
+    </linearGradient>
+    <linearGradient id="stroke" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ddd6fe"/><stop offset=".55" stop-color="#a78bfa"/><stop offset="1" stop-color="#6d28d9"/>
+    </linearGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="28"/></filter>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M48 0H0V48" fill="none" stroke="#c4b5fd" stroke-opacity=".055" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1280" height="640" fill="url(#bg)"/>
+  <rect width="1280" height="640" fill="url(#glow)"/>
+  <rect width="1280" height="640" fill="url(#grid)"/>
+  <circle cx="930" cy="320" r="180" fill="#7c3aed" opacity=".13" filter="url(#blur)"/>
+  <g transform="translate(825 135)">
+    <path d="M135 8 262 80v145l-127 73L8 225V80Z" fill="url(#glass)" stroke="url(#stroke)" stroke-width="2.5"/>
+    <path d="m135 8 127 72-127 73L8 80Z" fill="#c4b5fd" fill-opacity=".11" stroke="#c4b5fd" stroke-opacity=".45" stroke-width="1.5"/>
+    <path d="M135 153v145M8 80v145l127 73 127-73V80" fill="none" stroke="#a78bfa" stroke-opacity=".65" stroke-width="2"/>
+    <rect x="93" y="117" width="84" height="76" rx="16" fill="#0b0914" fill-opacity=".78" stroke="#ddd6fe" stroke-width="3"/>
+    <path d="M112 117V99a23 23 0 0 1 46 0v18" fill="none" stroke="#ddd6fe" stroke-width="8" stroke-linecap="round"/>
+    <circle cx="135" cy="151" r="7" fill="#c4b5fd"/>
+    <path d="M135 158v13" stroke="#c4b5fd" stroke-width="5" stroke-linecap="round"/>
+    <path d="m47 225 88-50 88 50" fill="none" stroke="#c4b5fd" stroke-opacity=".22" stroke-width="2"/>
+  </g>
+  <g fill="#fff">
+    <text x="112" y="275" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="142" font-weight="800" letter-spacing="-8">ZFS</text>
+    <rect x="118" y="312" width="86" height="5" rx="2.5" fill="#a78bfa"/>
+    <text x="116" y="370" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="28" font-weight="600" letter-spacing="5" fill="#c4b5fd">YOUR FILES. YOUR PRIVACY.</text>
+    <text x="118" y="430" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="20" fill="#aaa4bd">ENCRYPTED FILE CONTAINERS · AES-256-GCM</text>
+  </g>
+  <g fill="#a78bfa" opacity=".55">
+    <circle cx="748" cy="115" r="3"/><circle cx="1160" cy="495" r="4"/><circle cx="700" cy="510" r="2"/>
+  </g>
+</svg>
