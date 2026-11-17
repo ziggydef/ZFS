@@ -1,7 +1,7 @@
 name: ZFS Android Build
 on:
   push:
-    branches: [zfs-development]
+    branches: [main, zfs-development]
     paths:
       - "zfs/**"
       - "settings.gradle.kts"
